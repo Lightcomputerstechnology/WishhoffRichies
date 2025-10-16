@@ -1,8 +1,22 @@
+/* =========================
+   GLOBAL STYLES (LIGHT MODE)
+========================= */
+:root {
+  --bg: #fafafa;
+  --text: #222;
+  --card-bg: #fff;
+  --accent: #4a90e2;
+  --btn-bg: #eee;
+  --btn-hover: #e0e0e0;
+  --shadow: rgba(0, 0, 0, 0.05);
+}
+
 body {
   margin: 0;
   font-family: 'Poppins', sans-serif;
-  background: #fafafa;
-  color: #222;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 .main {
@@ -10,60 +24,97 @@ body {
   padding: 2rem;
 }
 
+/* =========================
+   NAVBAR
+========================= */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background: white;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  background: var(--card-bg);
+  box-shadow: 0 2px 5px var(--shadow);
+  transition: background 0.3s ease;
 }
 
 .logo {
   font-weight: bold;
   font-size: 1.5rem;
+  color: var(--accent);
+  letter-spacing: 0.5px;
 }
 
-.btn, .btn-primary {
+/* =========================
+   BUTTONS
+========================= */
+.btn,
+.btn-primary {
   border: none;
   padding: 0.8rem 1.5rem;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
+  transition: background 0.2s ease, transform 0.1s ease, color 0.3s ease;
 }
 
 .btn {
-  background: #eee;
+  background: var(--btn-bg);
+  color: var(--text);
+}
+
+.btn:hover {
+  background: var(--btn-hover);
+  transform: translateY(-1px);
 }
 
 .btn-primary {
-  background: #4a90e2;
-  color: white;
+  background: var(--accent);
+  color: #fff;
   margin-top: 1rem;
 }
 
+.btn-primary:hover {
+  background: #3a7edb;
+  transform: translateY(-1px);
+}
+
+/* =========================
+   SECTIONS
+========================= */
 .hero {
   padding: 4rem 1rem;
 }
 
 .about {
   padding: 3rem 1rem;
-  background: #fff;
+  background: var(--card-bg);
+  transition: background 0.3s ease;
 }
 
+/* =========================
+   FOOTER
+========================= */
 footer {
   margin-top: 2rem;
   padding: 1rem;
   font-size: 0.9rem;
   background: #f2f2f2;
+  text-align: center;
+  color: #555;
+  transition: background 0.3s ease, color 0.3s ease;
 }
+
+/* =========================
+   FORM SECTION
+========================= */
 .form-section {
   max-width: 600px;
   margin: 3rem auto;
-  background: white;
+  background: var(--card-bg);
   padding: 2rem;
   border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 10px var(--shadow);
+  transition: background 0.3s ease;
 }
 
 .wish-form {
@@ -76,21 +127,36 @@ footer {
 .wish-form textarea {
   padding: 0.8rem;
   border: 1px solid #ccc;
-  border-radius: 5px;
+  border-radius: 6px;
   font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.wish-form input:focus,
+.wish-form textarea:focus {
+  border-color: var(--accent);
 }
 
 .message {
   margin-top: 1rem;
   font-weight: bold;
-  color: #4a90e2;
+  color: var(--accent);
+  text-align: center;
 }
+
+/* =========================
+   BROWSE SECTION
+========================= */
 .browse-section {
   padding: 2rem 1rem;
   max-width: 1000px;
   margin: 0 auto;
 }
 
+/* =========================
+   WISH GRID
+========================= */
 .wish-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -98,31 +164,130 @@ footer {
   margin-top: 2rem;
 }
 
+/* =========================
+   WISH CARD
+========================= */
 .wish-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 10px;
   padding: 1.5rem;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 8px var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
 }
 
 .wish-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
 }
 
 .wish-card h3 {
   margin-top: 0;
-  color: #4a90e2;
+  color: var(--accent);
 }
 
 .wish-desc {
   font-size: 0.95rem;
   color: #444;
-  margin: 0.5rem 0 1rem 0;
+  margin: 0.5rem 0 1rem;
 }
 
 .small-btn {
   padding: 0.6rem 1rem;
   font-size: 0.9rem;
+}
+
+/* =========================
+   DARK MODE
+========================= */
+@media (prefers-color-scheme: dark),
+.dark-mode {
+  :root {
+    --bg: #0e1117;
+    --text: #f1f1f1;
+    --card-bg: #1a1d23;
+    --accent: #4a90e2;
+    --btn-bg: #2a2e36;
+    --btn-hover: #3b404a;
+    --shadow: rgba(255, 255, 255, 0.05);
+  }
+
+  footer {
+    background: #1a1d23;
+    color: #bbb;
+  }
+
+  .wish-desc {
+    color: #ccc;
+  }
+}
+
+/* =========================
+   RESPONSIVE DESIGN
+========================= */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    gap: 0.8rem;
+    padding: 1rem;
+  }
+
+  .logo {
+    font-size: 1.3rem;
+  }
+
+  .main {
+    padding: 1.5rem;
+  }
+
+  .form-section {
+    margin: 2rem 1rem;
+    padding: 1.5rem;
+  }
+
+  .wish-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .wish-card {
+    padding: 1.2rem;
+  }
+
+  .btn,
+  .btn-primary {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    align-items: flex-start;
+  }
+
+  .wish-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding: 2rem 1rem;
+  }
+
+  .form-section {
+    margin: 1rem;
+    padding: 1rem;
+  }
+
+  .wish-card {
+    padding: 1rem;
+  }
+
+  .btn,
+  .btn-primary {
+    font-size: 0.95rem;
+    padding: 0.7rem 1.2rem;
+  }
+
+  footer {
+    font-size: 0.8rem;
+  }
 }
