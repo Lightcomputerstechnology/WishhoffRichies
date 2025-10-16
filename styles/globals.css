@@ -85,3 +85,44 @@ footer {
   font-weight: bold;
   color: #4a90e2;
 }
+.browse-section {
+  padding: 2rem 1rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.wish-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.wish-card {
+  background: white;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wish-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+}
+
+.wish-card h3 {
+  margin-top: 0;
+  color: #4a90e2;
+}
+
+.wish-desc {
+  font-size: 0.95rem;
+  color: #444;
+  margin: 0.5rem 0 1rem 0;
+}
+
+.small-btn {
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+}
