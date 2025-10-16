@@ -11,6 +11,14 @@
     "next": "14.2.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "micro": "10.0.1"
+    "micro": "10.0.1",
+    "dependencies": {
+    "next": "14.2.3",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "micro": "10.0.1",
+    "@supabase/supabase-js": "2.39.6",
+    "stripe": "14.25.0"
+   }
   }
 }
