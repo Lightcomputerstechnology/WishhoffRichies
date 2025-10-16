@@ -1,5 +1,6 @@
 // pages/index.js
 import Head from 'next/head'
+import Link from 'next/link'
 
 export default function Home() {
   return (
@@ -16,7 +17,9 @@ export default function Home() {
       <main className="main">
         <nav className="navbar">
           <h1 className="logo">💫 WishhoffRichies</h1>
-          <button className="btn">Make a Wish</button>
+          <Link href="/make-wish">
+            <button className="btn">Make a Wish</button>
+          </Link>
         </nav>
 
         <section className="hero">
@@ -26,7 +29,9 @@ export default function Home() {
             <strong> WishhoffRichies </strong> bridges dreamers and donors — 
             turning heartfelt wishes into real-world impact.
           </p>
-          <button className="btn-primary">Get Started</button>
+          <Link href="/explore">
+            <button className="btn-primary">Get Started</button>
+          </Link>
         </section>
 
         <section className="about">
