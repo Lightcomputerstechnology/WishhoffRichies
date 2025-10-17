@@ -1,15 +1,11 @@
-# WishHoffRichies 🎁
+WishhoffRichies — Live ✅
 
-A Next.js + Stripe + Supabase powered wish-sharing and gift checkout platform.
+I just finished building a working MVP for WishhoffRichies — a platform that connects people with honest needs to generous donors.
 
-## 🧠 Tech Stack
-- Next.js 14
-- React 18
-- Stripe API
-- Supabase SDK
+Live site: https://<your-render-url>
+What you can do:
+- Create a wish (Tell your story + ask for an amount)
+- Browse wishes from others
+- Donate securely via Stripe
 
-## 🚀 Scripts
-```bash
-npm run dev     # Development
-npm run build   # Production build
-npm start       # Run production server
+If you'd like onboarding or white-labeling, reply here and I’ll help with customization and advanced moderation features.
