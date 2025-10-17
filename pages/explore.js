@@ -1,112 +1,61 @@
+// pages/explore.js
+import Head from "next/head";
 import { useEffect, useState } from "react";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import WishCard from "../components/WishCard";
 
 export default function Explore() {
   const [wishes, setWishes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    async function fetchWishes() {
-      const res = await fetch("/api/wishes/list");
-      const data = await res.json();
-      setWishes(data || []);
-      setLoading(false);
+    let mounted = true;
+    async function load() {
+      try {
+        const res = await fetch("/api/wishes/list");
+        const data = await res.json();
+        if (!mounted) return;
+        if (!res.ok) throw new Error(data.error || "Failed to fetch wishes");
+        setWishes(data);
+      } catch (err) {
+        console.error(err);
+        setError("Unable to load wishes right now.");
+      } finally {
+        setLoading(false);
+      }
     }
-    fetchWishes();
+    load();
+    return () => (mounted = false);
   }, []);
 
-  async function handleDonate(wishId, amount, email) {
-    const res = await fetch("/api/checkout/create-session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ wishId, amount, donorEmail: email }),
-    });
-    const data = await res.json();
-    if (data.url) window.location.href = data.url;
-  }
-
-  if (loading) return <p style={{ textAlign: "center" }}>Loading wishes...</p>;
-
   return (
-    <main className="explore">
-      <h1>🌟 Explore Wishes</h1>
-      <p>Pick a dream to make real — and become someone’s Richie.</p>
+    <>
+      <Head>
+        <title>Explore Wishes — WishhoffRichies</title>
+      </Head>
 
-      <div className="grid">
-        {wishes.length === 0 && <p>No wishes yet. Be the first!</p>}
-        {wishes.map((wish) => (
-          <div key={wish.id} className="card">
-            <h3>{wish.title}</h3>
-            <p>{wish.description}</p>
-            <p>
-              <strong>Goal:</strong> ${wish.amount}
-            </p>
-            <input
-              type="email"
-              placeholder="Your Email"
-              id={`donor-${wish.id}`}
-            />
-            <button
-              onClick={() =>
-                handleDonate(
-                  wish.id,
-                  wish.amount,
-                  document.getElementById(`donor-${wish.id}`).value
-                )
-              }
-            >
-              Donate ❤️
-            </button>
+      <Navbar />
+      <main className="container page">
+        <header className="page-header">
+          <h1>Explore Wishes</h1>
+          <p className="subtitle">Find a wish that moves you — every gift matters.</p>
+        </header>
+
+        {loading ? (
+          <p>Loading wishes…</p>
+        ) : error ? (
+          <p className="error">{error}</p>
+        ) : wishes.length === 0 ? (
+          <p>No wishes yet — be the first to <a href="/wish/new">make a wish</a>.</p>
+        ) : (
+          <div className="grid">
+            {wishes.map((w) => <WishCard key={w.id} wish={w} />)}
           </div>
-        ))}
-      </div>
-
-      <style jsx>{`
-        .explore {
-          text-align: center;
-          padding: 2rem;
-        }
-
-        .grid {
-          display: grid;
-          gap: 1.5rem;
-          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-          margin-top: 2rem;
-        }
-
-        .card {
-          background: #fff;
-          border-radius: 10px;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-          padding: 1.5rem;
-        }
-
-        .card h3 {
-          margin: 0 0 0.5rem;
-        }
-
-        .card button {
-          background: #0070f3;
-          color: #fff;
-          border: none;
-          border-radius: 8px;
-          padding: 0.6rem 1rem;
-          margin-top: 1rem;
-          cursor: pointer;
-          transition: 0.2s;
-        }
-
-        .card button:hover {
-          background: #0059c1;
-        }
-
-        input {
-          width: 100%;
-          padding: 0.5rem;
-          margin-top: 0.5rem;
-          border-radius: 6px;
-          border: 1px solid #ccc;
-        }
-      `}</style>
-    </main>
+        )}
+      </main>
+      <Footer />
+    </>
   );
 }
