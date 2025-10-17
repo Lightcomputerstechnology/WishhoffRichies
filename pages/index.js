@@ -1,147 +1,75 @@
 // pages/index.js
-import Head from 'next/head'
-import Link from 'next/link'
+// pages/index.js
+import Head from "next/head";
+import Link from "next/link";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 export default function Home() {
   return (
     <>
       <Head>
-        <title>WishhoffRichies | Turn Wishes into Reality</title>
-        <meta
-          name="description"
-          content="A platform where generosity meets dreams. WishhoffRichies connects those who wish with those who can make wishes come true — transparently and beautifully."
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>WishhoffRichies — Turn wishes into reality</title>
+        <meta name="description" content="WishhoffRichies connects people with dreams to those who can make them happen. Post a wish, get discovered, and receive support." />
       </Head>
 
-      <main className="main">
-        <nav className="navbar">
-          <h1 className="logo">💫 WishhoffRichies</h1>
-          <Link href="/make-wish">
-            <button className="btn">Make a Wish</button>
-          </Link>
-        </nav>
+      <Navbar />
 
-        <section className="hero">
-          <h2>Where Generosity Meets Dreams 🌍</h2>
-          <p>
-            Imagine a world where abundance fuels compassion. 
-            <strong> WishhoffRichies </strong> bridges dreamers and donors — 
-            turning heartfelt wishes into real-world impact.
-          </p>
-          <Link href="/explore">
-            <button className="btn-primary">Get Started</button>
-          </Link>
+      <main className="hero-wrap">
+        <section className="hero container">
+          <div className="hero-left">
+            <h1>Turn wishes into reality</h1>
+            <p className="lead">
+              WishhoffRichies connects generous donors with real people who need one helping hand. Transparent. Verified. Human.
+            </p>
+
+            <div className="hero-cta">
+              <Link href="/wish/new"><a className="btn primary">Make a Wish</a></Link>
+              <Link href="/explore"><a className="btn outline">Browse Wishes</a></Link>
+            </div>
+
+            <ul className="trust-list">
+              <li><strong>Verified wishes</strong> — manual review for larger requests</li>
+              <li><strong>Secure payments</strong> — Stripe Checkout</li>
+              <li><strong>Transparent</strong> — donation receipts & history</li>
+            </ul>
+          </div>
+
+          <div className="hero-right" aria-hidden>
+            <div className="mock-card">
+              <h4>Featured Wish</h4>
+              <p className="mock-title">School fees for Ada</p>
+              <div className="progress">
+                <div className="progress-bar" style={{ width: "62%" }} />
+              </div>
+              <div className="meta">
+                <span className="amount-raised">$620</span>
+                <span className="amount-goal"> / $1000</span>
+              </div>
+              <div className="mock-actions">
+                <Link href="/explore"><a className="btn small">View Wishes</a></Link>
+              </div>
+            </div>
+          </div>
         </section>
-
-        <section className="about">
-          <h3>💖 How It Works</h3>
-          <ul>
-            <li>1️⃣ Create a wish — share your story and what you need most.</li>
-            <li>2️⃣ Richies explore wishes and choose one to fulfill.</li>
-            <li>3️⃣ Joy spreads, and the world becomes a little kinder.</li>
-          </ul>
-        </section>
-
-        <footer>
-          <p>
-            © {new Date().getFullYear()} <strong>WishhoffRichies</strong> — Built with ❤️ by Light Tech Hub
-          </p>
-        </footer>
       </main>
 
-      <style jsx>{`
-        .main {
-          font-family: 'Inter', sans-serif;
-          background: #fafafa;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 0 1rem;
-          color: #222;
-        }
+      <section className="features container">
+        <div className="feature">
+          <h3>Simple</h3>
+          <p>Post a wish in under 60 seconds — share your need and a short story.</p>
+        </div>
+        <div className="feature">
+          <h3>Trustworthy</h3>
+          <p>Moderation and optional KYC for large payouts builds donor confidence.</p>
+        </div>
+        <div className="feature">
+          <h3>Secure</h3>
+          <p>Donations processed by Stripe; funds recorded and auditable in our system.</p>
+        </div>
+      </section>
 
-        .navbar {
-          width: 100%;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1rem 2rem;
-          background: #fff;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-          position: sticky;
-          top: 0;
-          z-index: 10;
-        }
-
-        .logo {
-          font-size: 1.5rem;
-          font-weight: bold;
-          color: #333;
-        }
-
-        .btn, .btn-primary {
-          border: none;
-          padding: 0.6rem 1.2rem;
-          border-radius: 8px;
-          font-size: 1rem;
-          cursor: pointer;
-          transition: all 0.2s ease-in-out;
-        }
-
-        .btn {
-          background: transparent;
-          border: 1px solid #222;
-        }
-
-        .btn:hover {
-          background: #222;
-          color: #fff;
-        }
-
-        .btn-primary {
-          background: #0070f3;
-          color: #fff;
-          margin-top: 1rem;
-        }
-
-        .btn-primary:hover {
-          background: #0059c1;
-        }
-
-        .hero {
-          text-align: center;
-          padding: 3rem 1rem;
-          max-width: 800px;
-        }
-
-        .about {
-          background: #fff;
-          padding: 2rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-          margin: 2rem auto;
-          max-width: 700px;
-          text-align: left;
-        }
-
-        footer {
-          text-align: center;
-          padding: 1rem;
-          font-size: 0.9rem;
-          color: #555;
-        }
-
-        ul {
-          list-style: none;
-          padding-left: 0;
-        }
-
-        li {
-          margin: 0.8rem 0;
-        }
-      `}</style>
+      <Footer />
     </>
   );
 }
