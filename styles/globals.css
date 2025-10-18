@@ -47,3 +47,73 @@ footer {
 .message {
   @apply mt-4 text-center font-medium text-primary;
 }
+/* === WishhoffRichies Custom Theme & Animations === */
+
+/* Primary DALL·E blue (consistent across site) */
+:root {
+  --color-primary: #0b3d91; /* deep, elegant dark blue */
+  --color-primary-hover: #0a357d;
+}
+
+/* Use the color everywhere Tailwind reads .text-primary etc */
+.text-primary {
+  color: var(--color-primary);
+}
+.bg-primary {
+  background-color: var(--color-primary);
+}
+.border-primary {
+  border-color: var(--color-primary);
+}
+.hover\:bg-primary:hover {
+  background-color: var(--color-primary-hover);
+}
+.hover\:text-primary:hover {
+  color: var(--color-primary-hover);
+}
+
+/* === Smooth Fade Animations === */
+@keyframes fade-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-up {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out both;
+}
+.animate-fade-up {
+  animation: fade-up 0.8s ease-out both;
+}
+
+/* === Card and Layout Enhancements === */
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  padding: 1.5rem;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.dark .card {
+  background: #111827; /* darker for dark mode */
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+}
+
+/* Container alignment fix for footer & navbar */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* Smooth transitions across theme modes */
+html {
+  scroll-behavior: smooth;
+  transition: background-color 0.4s, color 0.4s;
+}
