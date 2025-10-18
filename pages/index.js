@@ -1,4 +1,5 @@
 // pages/Index.js
+pages/Index.js
 import Head from "next/head";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -18,16 +19,15 @@ export default function Home() {
       <Navbar />
 
       {/* Hero Section */}
-      <header className="container mx-auto px-6 py-20 text-center md:text-left">
+      <header className="container mx-auto px-6 py-16 text-center md:text-left">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-12">
-          {/* Left Content */}
           <div className="flex-1">
-            <h1 className="text-4xl md:text-5xl font-extrabold leading-tight text-slate-900 dark:text-slate-100">
+            <h1 className="text-4xl md:text-5xl font-extrabold leading-tight text-slate-800 dark:text-slate-100">
               Turn wishes into reality ✨
             </h1>
-            <p className="mt-5 text-lg text-slate-700 dark:text-slate-300 max-w-lg">
-              A secure and human platform where verified donors fund honest
-              needs — with transparency and heart.
+            <p className="mt-5 text-lg text-slate-600 dark:text-slate-300 max-w-md">
+              A secure and human platform where verified donors fund honest needs —
+              with transparency and heart.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
@@ -53,7 +53,7 @@ export default function Home() {
           </div>
 
           {/* Featured Wish Card */}
-          <div className="flex-1 max-w-md mx-auto md:mx-0 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md border border-slate-100 dark:border-slate-700">
+          <div className="flex-1 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md border border-slate-100 dark:border-slate-700">
             <h4 className="text-primary font-semibold mb-2">Featured Wish</h4>
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
               School Fees for Ada
@@ -78,7 +78,7 @@ export default function Home() {
       </header>
 
       {/* Features Section */}
-      <section className="container mx-auto px-6 py-20 grid md:grid-cols-3 gap-8">
+      <section className="container mx-auto px-6 py-16 grid md:grid-cols-3 gap-8">
         {[
           {
             title: "Simple",
