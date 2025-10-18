@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Head from 'next/head'
-import { supabase } from '../lib/supabaseClient'
 import Link from 'next/link'
+import { supabase } from '../lib/supabaseClient'
 
 export default function CreateWish() {
   const [formData, setFormData] = useState({
@@ -15,7 +15,7 @@ export default function CreateWish() {
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleSubmit = async (e) => {
@@ -24,7 +24,7 @@ export default function CreateWish() {
     setMessage('')
 
     try {
-      const { data, error } = await supabase.from('wishes').insert([formData])
+      const { error } = await supabase.from('wishes').insert([formData])
       if (error) throw error
       setMessage('🎉 Wish created successfully!')
       setFormData({ name: '', title: '', description: '', amount: '' })
@@ -41,7 +41,8 @@ export default function CreateWish() {
       <Head>
         <title>Create a Wish | WishhoffRichies</title>
       </Head>
-      <main className="main">
+
+      <main>
         <nav className="navbar">
           <h1 className="logo">💫 WishhoffRichies</h1>
           <Link href="/">
@@ -50,8 +51,10 @@ export default function CreateWish() {
         </nav>
 
         <section className="form-section">
-          <h2>✨ Make Your Wish</h2>
-          <p>Fill in your wish details — maybe a kind heart will make it come true.</p>
+          <h2 className="text-3xl font-semibold mb-2">✨ Make Your Wish</h2>
+          <p className="text-gray-600 max-w-md">
+            Fill in your wish details — maybe a kind heart will make it come true.
+          </p>
 
           <form onSubmit={handleSubmit} className="wish-form">
             <input
