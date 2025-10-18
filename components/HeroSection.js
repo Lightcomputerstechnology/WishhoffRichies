@@ -1,131 +1,67 @@
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 export default function HeroSection() {
-  const sampleWishes = [
-    "🎓 School Fees for Ada",
-    "🏠 Rent Support for Chidi",
-    "🛍 Business Startup for Joy",
-    "💊 Medical Bill for Mama Peace",
-    "📚 Exam Registration for Daniel",
-    "💡 Electricity Bill for Ngozi",
-  ];
-  const [currentWish, setCurrentWish] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentWish((prev) => (prev + 1) % sampleWishes.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[#1E3A8A] to-[#0F1F4B] text-white py-24">
-      <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-10">
-        {/* LEFT SIDE — Text */}
-        <div className="flex-1 max-w-lg">
-          <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-4 text-white drop-shadow-lg">
-            Turn <span className="text-blue-300">Wishes</span> into Reality 💫
+    <header className="container mx-auto px-6 py-16 text-center md:text-left">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-12">
+        {/* LEFT SIDE — Text Content */}
+        <div className="flex-1">
+          <h1 className="text-4xl md:text-5xl font-extrabold leading-tight text-slate-800 dark:text-slate-100">
+            Turn wishes into reality ✨
           </h1>
-
-          <p className="text-lg text-gray-100 mb-8 leading-relaxed">
-            WishhoffRichies connects kind donors with real people in need —
-            safe, transparent, and human-first giving for all.
+          <p className="mt-5 text-lg text-slate-600 dark:text-slate-300 max-w-md">
+            A secure and human platform where verified donors fund honest needs —
+            with transparency and heart.
           </p>
 
-          {/* Animated Wish Examples */}
-          <div className="relative h-10 overflow-hidden mb-8">
-            <p
-              key={currentWish}
-              className="absolute w-full text-xl font-semibold text-blue-200 animate-fade-slide"
+          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+            <Link
+              href="/wish/new"
+              className="px-6 py-3 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition"
             >
-              {sampleWishes[currentWish]}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-4">
-            <Link href="/wish/new" className="btn-primary">
-              🌠 Make a Wish
+              Make a Wish
             </Link>
-            <Link href="/explore" className="btn-outline">
-              🌍 Browse Wishes
+            <Link
+              href="/explore"
+              className="px-6 py-3 rounded-lg border border-primary text-primary font-medium hover:bg-primary hover:text-white transition"
+            >
+              Browse Wishes
             </Link>
           </div>
+
+          <ul className="mt-6 space-y-2 text-sm text-slate-500 dark:text-slate-400">
+            <li>• Manual moderation for high-value requests</li>
+            <li>• Secure payments via Stripe</li>
+            <li>• Transparent donation tracking</li>
+          </ul>
         </div>
 
-        {/* RIGHT SIDE — Illustration */}
-        <div className="flex-1 flex justify-center">
-          <img
-            src="/hero-illustration.svg"
-            alt="People granting wishes illustration"
-            className="max-w-sm w-full drop-shadow-2xl"
-          />
-        </div>
-      </div>
+        {/* RIGHT SIDE — Featured Wish Card */}
+        <div className="flex-1 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md border border-slate-100 dark:border-slate-700">
+          <h4 className="text-primary font-semibold mb-2">Featured Wish</h4>
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+            School Fees for Ada
+          </h3>
 
-      {/* Scroll indicator */}
-      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 animate-bounce">
-        <div className="text-blue-100 text-sm flex flex-col items-center">
-          <span>Scroll to explore</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth="1.5"
-            stroke="currentColor"
-            className="w-6 h-6 mt-1"
+          <div className="mt-3 bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
+            <div
+              style={{ width: "62%" }}
+              className="bg-primary h-3 rounded-full transition-all"
+            ></div>
+          </div>
+
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            $620 raised of $1000 goal
+          </p>
+
+          <Link
+            href="/explore"
+            className="mt-4 inline-block px-5 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-          </svg>
+            View Wishes
+          </Link>
         </div>
       </div>
-
-      <style jsx>{`
-        .btn-primary {
-          background: #fff;
-          color: #1e3a8a;
-          font-weight: 600;
-          padding: 10px 22px;
-          border-radius: 8px;
-          transition: 0.3s;
-        }
-        .btn-primary:hover {
-          background: #f0f3ff;
-        }
-
-        .btn-outline {
-          border: 2px solid #fff;
-          color: #fff;
-          padding: 10px 22px;
-          border-radius: 8px;
-          transition: 0.3s;
-        }
-        .btn-outline:hover {
-          background: rgba(255, 255, 255, 0.15);
-        }
-
-        @keyframes fadeSlide {
-          0% {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          20% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-          80% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-          100% {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-        }
-        .animate-fade-slide {
-          animation: fadeSlide 3s ease-in-out infinite;
-        }
-      `}</style>
-    </section>
+    </header>
   );
 }
