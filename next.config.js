@@ -1,6 +1,12 @@
-/** @type {import('next').NextConfig} */
+// next.config.js
 const nextConfig = {
   reactStrictMode: true,
-  images: { domains: ["images.unsplash.com", "your-supabase-bucket.supabase.co"] }
+  poweredByHeader: false,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
 };
+
 module.exports = nextConfig;
