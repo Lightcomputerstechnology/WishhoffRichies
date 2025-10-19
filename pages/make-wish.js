@@ -1,5 +1,3 @@
-// pages/make-wish.js
-
 "use client";
 import Link from "next/link";
 import { useState } from "react";
@@ -13,6 +11,7 @@ export default function MakeWish() {
     title: "",
     description: "",
     amount: "",
+    location: "",
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -27,7 +26,7 @@ export default function MakeWish() {
     setMessage("");
 
     // Basic validation
-    if (!formData.name || !formData.email || !formData.title || !formData.description || !formData.amount) {
+    if (!formData.name || !formData.email || !formData.title || !formData.description || !formData.amount || !formData.location) {
       setMessage("Please fill in all required fields.");
       setLoading(false);
       return;
@@ -43,7 +42,7 @@ export default function MakeWish() {
 
       if (res.ok) {
         setMessage("🎉 Wish created successfully!");
-        setFormData({ name: "", email: "", title: "", description: "", amount: "" });
+        setFormData({ name: "", email: "", title: "", description: "", amount: "", location: "" });
         setShowKYC(true); // Prompt KYC after creating wish
       } else {
         setMessage(data.error || "Something went wrong.");
@@ -61,7 +60,7 @@ export default function MakeWish() {
         <title>Make a Wish | WishhoffRichies</title>
       </Head>
 
-      <main className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#0b3d91] via-[#2563eb] to-[#0f172a] p-4">
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f8fafc] to-[#e2e8f0] dark:from-slate-900 dark:to-slate-800 p-4">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-lg p-6 md:p-10">
           <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-4 text-center">
             💫 Create Your Wish
@@ -71,7 +70,7 @@ export default function MakeWish() {
           </p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {["name", "email", "title", "description", "amount"].map((field) => (
+            {["name", "email", "title", "location", "description", "amount"].map((field) => (
               field !== "description" ? (
                 <input
                   key={field}
