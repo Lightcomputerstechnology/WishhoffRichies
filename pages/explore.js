@@ -1,9 +1,9 @@
+import Link from "next/link";
 import Head from "next/head";
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import WishCard from "../components/WishCard";
-import Link from "next/link";
 
 export default function Explore() {
   const [wishes, setWishes] = useState([]);
