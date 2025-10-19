@@ -1,9 +1,7 @@
-// pages/Index.js
 import Head from "next/head";
 import Navbar from "../components/Navbar";
 import HeroSection from "../components/HeroSection"; // ✅ Imported Hero section correctly
 import Footer from "../components/Footer";
-import Link from "next/link";
 
 export default function Home() {
   return (
@@ -39,12 +37,12 @@ export default function Home() {
         ].map((feature, i) => (
           <div
             key={i}
-            className="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-slate-700 transition"
+            className="bg-[#0b3d91] dark:bg-[#111827] p-8 rounded-xl shadow-lg border-2 border-[#2563eb] hover:shadow-2xl transition flex flex-col justify-between"
           >
-            <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+            <h4 className="text-accent font-bold text-lg mb-2">
               {feature.title}
             </h4>
-            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+            <p className="text-light/90 text-sm leading-relaxed">
               {feature.desc}
             </p>
           </div>
