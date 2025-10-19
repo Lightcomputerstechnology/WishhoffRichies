@@ -4,6 +4,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { useState } from "react";
 import { useRouter } from "next/router";
+import KYCModal from "../../components/KYCModal";
 
 export default function NewWish() {
   const [form, setForm] = useState({
@@ -15,6 +16,7 @@ export default function NewWish() {
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showKYC, setShowKYC] = useState(false);
   const router = useRouter();
 
   const onChange = (e) =>
@@ -43,6 +45,8 @@ export default function NewWish() {
       setMessage("🎉 Your wish has been created! It’ll appear after moderation.");
       setForm({ name: "", email: "", title: "", description: "", amount: "" });
 
+      // Show KYC modal after submission
+      setShowKYC(true);
       setTimeout(() => router.push("/explore"), 1200);
     } catch (err) {
       setMessage(err.message || "Submission failed. Try again later.");
@@ -58,202 +62,95 @@ export default function NewWish() {
       </Head>
       <Navbar />
 
-      <main className="new-wish-page">
-        <section className="form-wrapper">
-          <h1>Create a Wish</h1>
-          <p className="subtitle">Share your story — keep it honest and inspiring ✨</p>
+      <main className="min-h-screen bg-gradient-to-b from-[#0b3d91] via-[#2563eb] to-[#0f172a] flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-lg p-6 md:p-10">
+          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-3 text-center">
+            ✨ Create Your Wish
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-300 text-center mb-6">
+            Share your story — keep it honest and inspiring ✨
+          </p>
 
-          <form onSubmit={handleSubmit}>
-            <label>Your Name</label>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <input
               type="text"
               name="name"
-              placeholder="e.g. Sarah Adams"
+              placeholder="Your Name"
               value={form.name}
               onChange={onChange}
               required
+              className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary transition"
             />
-
-            <label>Email</label>
             <input
               type="email"
               name="email"
-              placeholder="you@example.com"
+              placeholder="Your Email"
               value={form.email}
               onChange={onChange}
               required
+              className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary transition"
             />
-
-            <label>Wish Title</label>
             <input
               type="text"
               name="title"
-              placeholder="A short and clear wish title"
+              placeholder="Wish Title"
               value={form.title}
               onChange={onChange}
               required
+              className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary transition"
             />
-
-            <label>Description</label>
             <textarea
               name="description"
               placeholder="Tell your story — what do you wish for?"
               value={form.description}
               onChange={onChange}
+              rows={5}
               required
+              className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary transition"
             />
-
-            <label>Goal Amount (USD)</label>
             <input
               type="number"
               name="amount"
-              placeholder="Enter target amount"
+              placeholder="Goal Amount (USD)"
               value={form.amount}
               onChange={onChange}
               min="1"
               step="0.01"
               required
+              className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary transition"
             />
 
-            <div className="button-group">
-              <button type="submit" className="btn primary" disabled={loading}>
+            <div className="flex justify-between mt-4">
+              <button
+                type="submit"
+                className="bg-primary text-white py-3 px-5 rounded-lg font-semibold hover:bg-primary/90 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={loading}
+              >
                 {loading ? "Submitting…" : "Submit Wish"}
               </button>
-              <a href="/explore" className="btn outline">
+              <Link href="/explore" className="border border-primary text-primary py-3 px-5 rounded-lg hover:bg-primary/10 transition flex items-center justify-center">
                 Cancel
-              </a>
+              </Link>
             </div>
 
             {message && (
-              <p className={`message ${message.startsWith("🎉") ? "success" : "error"}`}>
+              <p className={`text-center mt-4 p-2 rounded-lg ${message.startsWith("🎉") ? "bg-green-100 text-green-800" : "bg-red-100 text-red-700"}`}>
                 {message}
               </p>
             )}
           </form>
-        </section>
+        </div>
       </main>
 
       <Footer />
 
-      <style jsx>{`
-        .new-wish-page {
-          background-color: #f9fbff;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 4rem 1rem;
-        }
-
-        .form-wrapper {
-          background: #fff;
-          border-radius: 10px;
-          padding: 2rem;
-          width: 100%;
-          max-width: 600px;
-          box-shadow: 0 4px 12px rgba(0, 30, 60, 0.1);
-          border: 1px solid #e0e7ff;
-        }
-
-        h1 {
-          color: #0f1d40;
-          font-size: 1.8rem;
-          margin-bottom: 0.4rem;
-          text-align: center;
-        }
-
-        .subtitle {
-          color: #5a6e9e;
-          font-size: 0.95rem;
-          text-align: center;
-          margin-bottom: 1.5rem;
-        }
-
-        label {
-          display: block;
-          margin-top: 1rem;
-          font-weight: 600;
-          color: #0f1d40;
-        }
-
-        input,
-        textarea {
-          width: 100%;
-          margin-top: 0.4rem;
-          padding: 0.8rem;
-          border: 1px solid #cdd6f4;
-          border-radius: 6px;
-          background: #fdfdfd;
-          font-size: 1rem;
-          color: #1a2a57;
-          transition: border-color 0.2s;
-        }
-
-        input:focus,
-        textarea:focus {
-          border-color: #2547d0;
-          outline: none;
-          box-shadow: 0 0 0 2px rgba(37, 71, 208, 0.1);
-        }
-
-        textarea {
-          min-height: 120px;
-          resize: vertical;
-        }
-
-        .button-group {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 1.5rem;
-        }
-
-        .btn {
-          border-radius: 6px;
-          padding: 0.7rem 1.5rem;
-          font-weight: 600;
-          cursor: pointer;
-          text-align: center;
-          transition: background 0.2s, color 0.2s;
-        }
-
-        .btn.primary {
-          background: #2547d0;
-          color: #fff;
-          border: none;
-        }
-
-        .btn.primary:hover {
-          background: #1d3cb8;
-        }
-
-        .btn.outline {
-          border: 1px solid #2547d0;
-          color: #2547d0;
-          background: transparent;
-        }
-
-        .btn.outline:hover {
-          background: #eaf0ff;
-        }
-
-        .message {
-          margin-top: 1rem;
-          text-align: center;
-          font-size: 0.95rem;
-          padding: 0.6rem;
-          border-radius: 6px;
-        }
-
-        .message.error {
-          background: #ffeaea;
-          color: #b00020;
-        }
-
-        .message.success {
-          background: #e8f7e9;
-          color: #147d14;
-        }
-      `}</style>
+      {showKYC && (
+        <KYCModal
+          userId={form.name || form.title}
+          onUploaded={() => setShowKYC(false)}
+          onClose={() => setShowKYC(false)}
+        />
+      )}
     </>
   );
 }
