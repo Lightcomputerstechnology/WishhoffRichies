@@ -6,31 +6,56 @@ import { supabase } from "../../lib/supabaseClient";
 
 export default function ReportsPage() {
   const [wishes, setWishes] = useState([]);
-  const [stats, setStats] = useState({ total: 0, completed: 0, pending: 0, raised: 0 });
+  const [donations, setDonations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const reportRef = useRef();
 
   useEffect(() => {
-    loadData();
+    loadAll();
   }, []);
 
-  async function loadData() {
+  async function loadAll() {
+    setLoading(true);
     const { data: userRes } = await supabase.auth.getUser();
     const user = userRes?.user;
-    if (!user) return;
+    if (!user) {
+      setWishes([]); setDonations([]); setLoading(false); return;
+    }
 
-    const { data } = await supabase.from("wishes").select("*").eq("user_id", user.id);
-    setWishes(data || []);
-    const completed = data.filter((w) => w.raised_amount >= w.amount).length;
-    const pending = data.length - completed;
-    const raised = data.reduce((acc, w) => acc + (w.raised_amount || 0), 0);
-    setStats({ total: data.length, completed, pending, raised });
+    // Fetch user wishes
+    const { data: wData } = await supabase.from("wishes").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    // Fetch donation history for this user (donor or recipient) — adjust to your schema
+    const { data: dData } = await supabase.from("donations").select("*").or(`donor_id.eq.${user.id},wish_owner_id.eq.${user.id}`).order("created_at", { ascending: false });
+
+    setWishes(wData || []);
+    setDonations(dData || []);
+    setLoading(false);
   }
 
-  async function handlePrint() {
-    window.print();
+  function downloadCSV() {
+    const rows = [
+      ["Type","Title/Reference","Amount","Status","Date"]
+    ];
+
+    wishes.forEach(w => {
+      rows.push(["Wish", w.title, w.raised_amount ?? 0, (w.raised_amount >= w.amount ? "Completed" : "Pending"), new Date(w.created_at).toISOString()]);
+    });
+
+    donations.forEach(d => {
+      rows.push(["Donation", d.wish_title || d.reference || `wish:${d.wish_id}`, d.amount, "Completed", new Date(d.created_at).toISOString()]);
+    });
+
+    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `wishhoffrichies-report-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
-  async function handleExportPDF() {
+  async function exportPDF() {
     try {
       const { default: html2canvas } = await import("html2canvas");
       const { jsPDF } = await import("jspdf");
@@ -42,78 +67,113 @@ export default function ReportsPage() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save("wishhoffrichies-user-report.pdf");
+      pdf.save("wishhoffrichies-report.pdf");
     } catch (err) {
-      console.error("PDF export failed:", err);
-      handlePrint();
+      console.error("PDF export issue", err);
+      window.print();
     }
   }
 
+  const totals = {
+    totalWishes: wishes.length,
+    completed: wishes.filter(w => (w.raised_amount ?? 0) >= (w.amount ?? 0)).length,
+    pending: wishes.filter(w => (w.raised_amount ?? 0) < (w.amount ?? 0)).length,
+    totalRaised: wishes.reduce((s, w) => s + (w.raised_amount ?? 0), 0),
+    donationsCount: donations.length,
+    donationsTotal: donations.reduce((s, d) => s + (d.amount ?? 0), 0),
+  };
+
   return (
-    <DashboardLayout>
+    <DashboardLayout title="Reports">
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Reports</h1>
+          <h1 className="text-2xl font-semibold">Reports & Exports</h1>
           <div className="flex gap-2">
-            <button onClick={handlePrint} className="px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded">
-              Print
-            </button>
-            <button onClick={handleExportPDF} className="px-3 py-2 bg-primary text-white rounded">
-              Export PDF
-            </button>
+            <button onClick={downloadCSV} className="px-3 py-2 rounded border">Export CSV</button>
+            <button onClick={exportPDF} className="px-3 py-2 bg-primary text-white rounded">Export PDF / Print</button>
           </div>
         </div>
 
-        <div ref={reportRef} className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6 space-y-4">
-          <h2 className="text-lg font-semibold mb-2">Summary</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div>
-              <p className="text-slate-500 text-sm">Total Wishes</p>
-              <p className="text-xl font-bold text-primary">{stats.total}</p>
+        <div ref={reportRef} className="bg-white dark:bg-slate-800 p-6 rounded shadow space-y-6">
+          <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-3 bg-slate-50 dark:bg-slate-700 rounded">
+              <div className="text-sm text-slate-500">Total Wishes</div>
+              <div className="text-xl font-bold text-primary">{totals.totalWishes}</div>
             </div>
-            <div>
-              <p className="text-slate-500 text-sm">Completed</p>
-              <p className="text-xl font-bold text-green-500">{stats.completed}</p>
+            <div className="text-center p-3 bg-slate-50 dark:bg-slate-700 rounded">
+              <div className="text-sm text-slate-500">Completed</div>
+              <div className="text-xl font-bold text-green-500">{totals.completed}</div>
             </div>
-            <div>
-              <p className="text-slate-500 text-sm">Pending</p>
-              <p className="text-xl font-bold text-yellow-500">{stats.pending}</p>
+            <div className="text-center p-3 bg-slate-50 dark:bg-slate-700 rounded">
+              <div className="text-sm text-slate-500">Pending</div>
+              <div className="text-xl font-bold text-yellow-500">{totals.pending}</div>
             </div>
-            <div>
-              <p className="text-slate-500 text-sm">Total Raised</p>
-              <p className="text-xl font-bold text-primary">${stats.raised}</p>
+            <div className="text-center p-3 bg-slate-50 dark:bg-slate-700 rounded">
+              <div className="text-sm text-slate-500">Total Raised</div>
+              <div className="text-xl font-bold text-primary">${totals.totalRaised}</div>
             </div>
-          </div>
+          </section>
 
-          <div className="mt-8">
+          <section>
             <h2 className="text-lg font-semibold mb-2">Wish Breakdown</h2>
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="bg-slate-100 dark:bg-slate-700">
-                  <th className="p-2 text-left">Title</th>
-                  <th className="p-2 text-left">Goal</th>
-                  <th className="p-2 text-left">Raised</th>
-                  <th className="p-2 text-left">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {wishes.map((w) => (
-                  <tr key={w.id} className="border-b border-slate-200 dark:border-slate-700">
-                    <td className="p-2">{w.title}</td>
-                    <td className="p-2">${w.amount}</td>
-                    <td className="p-2">${w.raised_amount || 0}</td>
-                    <td className="p-2">
-                      {w.raised_amount >= w.amount ? (
-                        <span className="text-green-500 font-medium">Completed</span>
-                      ) : (
-                        <span className="text-yellow-500 font-medium">Pending</span>
-                      )}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-100 dark:bg-slate-700">
+                  <tr>
+                    <th className="p-2 text-left">Title</th>
+                    <th className="p-2 text-left">Goal</th>
+                    <th className="p-2 text-left">Raised</th>
+                    <th className="p-2 text-left">Status</th>
+                    <th className="p-2 text-left">Created</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {wishes.map(w => (
+                    <tr key={w.id} className="border-b dark:border-slate-700">
+                      <td className="p-2">{w.title}</td>
+                      <td className="p-2">${w.amount}</td>
+                      <td className="p-2">${w.raised_amount ?? 0}</td>
+                      <td className="p-2">
+                        {(w.raised_amount ?? 0) >= (w.amount ?? 0) ? <span className="text-green-500">Completed</span> : <span className="text-yellow-500">Pending</span>}
+                      </td>
+                      <td className="p-2">{new Date(w.created_at).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold mb-2">Donation History</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-100 dark:bg-slate-700">
+                  <tr>
+                    <th className="p-2 text-left">Reference</th>
+                    <th className="p-2 text-left">Wish</th>
+                    <th className="p-2 text-left">Amount</th>
+                    <th className="p-2 text-left">Method</th>
+                    <th className="p-2 text-left">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {donations.map(d => (
+                    <tr key={d.id} className="border-b dark:border-slate-700">
+                      <td className="p-2">{d.reference ?? d.id}</td>
+                      <td className="p-2">{d.wish_title ?? d.wish_id}</td>
+                      <td className="p-2">${d.amount}</td>
+                      <td className="p-2">{d.method ?? "—"}</td>
+                      <td className="p-2">{new Date(d.created_at).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="text-sm text-slate-500 mt-3">
+              Donations shown include records where you were donor or where you were the wish owner (depends on your donations table schema).
+            </div>
+          </section>
         </div>
       </div>
     </DashboardLayout>
