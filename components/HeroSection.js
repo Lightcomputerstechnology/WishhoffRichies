@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 const featuredWishes = [
@@ -46,8 +46,8 @@ export default function HeroSection() {
             with transparency and heart.
           </p>
 
-          {/* Buttons side by side and centered */}
-          <div className="flex flex-wrap gap-6 justify-center md:justify-start">
+          {/* Buttons side by side */}
+          <div className="flex gap-6 justify-center md:justify-start">
             <Link
               href="/wish/new"
               className="bg-light text-primary font-bold px-8 py-4 rounded-lg shadow-lg hover:bg-accent hover:text-white transition"
@@ -63,9 +63,9 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* RIGHT SIDE — Featured Wish Card Carousel */}
+        {/* RIGHT SIDE — Featured Wish Card */}
         <div
-          className="flex-1 max-w-md relative overflow-hidden rounded-2xl mx-auto"
+          className="flex-1 max-w-[85%] mx-auto" // reduced width slightly and centralized
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
@@ -76,7 +76,7 @@ export default function HeroSection() {
             {featuredWishes.map((wish, idx) => (
               <div
                 key={idx}
-                className="min-w-full bg-white dark:bg-slate-800 p-6 border-y-4 border-x-2 border-primary rounded-2xl shadow-md flex flex-col justify-between"
+                className="min-w-full bg-white dark:bg-slate-800 p-6 border-y-4 border-x-2 border-primary rounded-2xl shadow-md flex flex-col justify-between mx-auto"
               >
                 <h4 className="text-primary font-semibold mb-2">Featured Wish</h4>
                 <h3 className="text-lg font-bold text-dark dark:text-light">{wish.title}</h3>
