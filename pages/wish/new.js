@@ -1,4 +1,5 @@
 // pages/wish/new.js
+"use client";
 import Link from "next/link";
 import Head from "next/head";
 import Navbar from "../../components/Navbar";
