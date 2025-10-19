@@ -4,6 +4,8 @@ import Navbar from "../components/Navbar";
 import HeroSection from "../components/HeroSection";
 import FeaturesSection from "../components/FeaturesSection";
 import FeaturedWishesSection from "../components/FeaturedWishesSection";
+import HowItWorksSection from "../components/HowItWorksSection";
+import MilestonesSection from "../components/MilestonesSection";
 import Footer from "../components/Footer";
 
 export default function Home() {
@@ -21,6 +23,8 @@ export default function Home() {
       <HeroSection />
       <FeaturesSection />
       <FeaturedWishesSection />
+      <HowItWorksSection />
+      <MilestonesSection />
       <Footer />
     </>
   );
