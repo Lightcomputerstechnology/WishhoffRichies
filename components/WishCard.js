@@ -1,6 +1,5 @@
 // components/WishCard.js
 "use client";
-// components/WishCard.js
 import Link from "next/link";
 
 export default function WishCard({ wish }) {
