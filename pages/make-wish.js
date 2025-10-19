@@ -1,4 +1,5 @@
 // pages/make-wish.js
+import Link from "next/link";
 import { useState } from "react";
 import Head from "next/head";
 import KYCModal from "../components/KYCModal";
