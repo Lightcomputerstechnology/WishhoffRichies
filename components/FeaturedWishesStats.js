@@ -1,5 +1,7 @@
 // components/FeaturedWishesStats.js
 import { useEffect, useState } from "react";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 const statsData = [
   { label: "Pending Wishes", value: 210 },
@@ -30,17 +32,27 @@ function useCountUp(target, duration = 2000) {
 }
 
 export default function FeaturedWishesStats() {
+  useEffect(() => {
+    AOS.init({ duration: 1000, once: true, offset: 50 });
+  }, []);
+
   return (
-    <section className="py-16 bg-slate-100 dark:bg-slate-800">
-      <div className="container mx-auto px-6 grid md:grid-cols-4 gap-8 text-center">
+    <section className="py-16 bg-slate-100 dark:bg-slate-800 overflow-x-hidden">
+      <div className="container mx-auto px-6 grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
         {statsData.map((stat, i) => {
           const count = useCountUp(stat.value);
+
+          // Format Funds Raised with commas
+          const displayValue =
+            stat.label.includes("Funds Raised") ? `$${count.toLocaleString()}` : count;
+
           return (
             <div
               key={i}
-              className="card p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700"
+              data-aos="fade-up"
+              className="card p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 transition-transform hover:scale-105"
             >
-              <h3 className="text-3xl font-bold text-primary mb-2">{count}</h3>
+              <h3 className="text-3xl font-bold text-primary mb-2">{displayValue}</h3>
               <p className="text-slate-700 dark:text-slate-300 font-medium">{stat.label}</p>
             </div>
           );
