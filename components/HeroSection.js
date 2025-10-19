@@ -2,21 +2,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 
 const featuredWishes = [
-  {
-    title: "School Fees for Ada",
-    raised: 620,
-    goal: 1000,
-  },
-  {
-    title: "Medical Bill for Emeka",
-    raised: 430,
-    goal: 800,
-  },
-  {
-    title: "Books for Chiamaka",
-    raised: 150,
-    goal: 500,
-  },
+  { title: "School Fees for Ada", raised: 620, goal: 1000 },
+  { title: "Medical Bill for Emeka", raised: 430, goal: 800 },
+  { title: "Books for Chiamaka", raised: 150, goal: 500 },
 ];
 
 export default function HeroSection() {
@@ -27,36 +15,35 @@ export default function HeroSection() {
     if (!paused) {
       const interval = setInterval(() => {
         setCurrentIndex((prev) => (prev + 1) % featuredWishes.length);
-      }, 5000);
+      }, 5000); // 5s per slide
       return () => clearInterval(interval);
     }
   }, [paused]);
 
   return (
     <section className="relative bg-gradient-to-b from-[#0b3d91] via-[#2563eb] to-[#0f172a] text-white py-24">
-      <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-12">
+      <div className="container mx-auto px-6 flex flex-col md:flex-row items-center gap-12">
         {/* LEFT SIDE — Text */}
         <div className="flex-1 max-w-lg text-center md:text-left animate-fade-up">
           <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-4 drop-shadow-lg">
             Turn <span className="text-accent">Wishes</span> into Reality
           </h1>
-
           <p className="text-lg text-light/90 mb-8 leading-relaxed">
             A secure and human platform where verified donors fund honest needs —
             with transparency and heart.
           </p>
 
           {/* Buttons side by side */}
-          <div className="flex gap-6 justify-center md:justify-start">
+          <div className="flex gap-6 justify-center md:justify-start flex-wrap md:flex-nowrap">
             <Link
               href="/wish/new"
-              className="bg-light text-primary font-bold px-8 py-4 rounded-lg shadow-lg hover:bg-accent hover:text-white transition"
+              className="bg-light text-primary font-bold px-10 py-4 rounded-lg shadow-lg hover:bg-accent hover:text-white transition w-full md:w-auto text-center"
             >
               Make a Wish
             </Link>
             <Link
               href="/explore"
-              className="border-2 border-light text-light font-bold px-8 py-4 rounded-lg shadow-lg hover:bg-light hover:text-primary transition"
+              className="border-2 border-light text-light font-bold px-10 py-4 rounded-lg shadow-lg hover:bg-light hover:text-primary transition w-full md:w-auto text-center"
             >
               Browse Wishes
             </Link>
@@ -65,7 +52,7 @@ export default function HeroSection() {
 
         {/* RIGHT SIDE — Featured Wish Card */}
         <div
-          className="flex-1 max-w-[85%] mx-auto" // reduced width slightly and centralized
+          className="flex-1 max-w-[85%] mx-auto overflow-hidden"
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
@@ -76,7 +63,7 @@ export default function HeroSection() {
             {featuredWishes.map((wish, idx) => (
               <div
                 key={idx}
-                className="min-w-full bg-white dark:bg-slate-800 p-6 border-y-4 border-x-2 border-primary rounded-2xl shadow-md flex flex-col justify-between mx-auto"
+                className="min-w-full bg-white dark:bg-slate-800 p-6 border-y-4 border-x-2 border-primary rounded-2xl shadow-lg flex flex-col justify-between mx-auto"
               >
                 <h4 className="text-primary font-semibold mb-2">Featured Wish</h4>
                 <h3 className="text-lg font-bold text-dark dark:text-light">{wish.title}</h3>
