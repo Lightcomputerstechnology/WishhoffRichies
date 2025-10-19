@@ -1,119 +1,81 @@
 "use client";
 import Link from "next/link";
-import Head from "next/head";
-import { useEffect, useState } from "react";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import WishCard from "../components/WishCard";
-import { supabase } from "../lib/supabaseClient";
+import { formatDistanceToNow } from "date-fns";
 
-// Mock Data
-const generateMockWishes = () => [
-  { id: "m1", name: "James Smith", title: "New Laptop for Coding", description: "I need a laptop to learn web development and build projects.", amount: 500, verified: true, image: "/sample1.jpg" },
-  { id: "m2", name: "Emily Johnson", title: "Guitar Lessons", description: "I want to take guitar lessons and start a small band.", amount: 200, verified: false, image: "/sample2.jpg" },
-  { id: "m3", name: "Michael Brown", title: "Charity Support", description: "Help me fund a small charity project in my neighborhood.", amount: 300, verified: true, image: "/sample3.jpg" },
-  { id: "m4", name: "Olivia Davis", title: "Medical Expenses", description: "I need assistance with medical bills for my family.", amount: 1000, verified: true, image: "/sample4.jpg" },
-  // … add more mock wishes as needed
-];
+export default function WishCard({ wish }) {
+  const fulfilled = wish.fulfilled || Math.floor(Math.random() * (wish.amount + 1)); // For mock progress
+  const progress = Math.min((fulfilled / wish.amount) * 100, 100);
+  const isFulfilled = fulfilled >= wish.amount;
 
-export default function Explore() {
-  const [wishes, setWishes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    let mounted = true;
-    async function loadWishes() {
-      try {
-        const { data, error } = await supabase
-          .from("wishes")
-          .select("*")
-          .order("created_at", { ascending: false });
-        if (!mounted) return;
-        if (error || !data || data.length === 0) {
-          setWishes(generateMockWishes());
-        } else {
-          setWishes(data);
-        }
-      } catch (err) {
-        console.error(err);
-        setWishes(generateMockWishes());
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadWishes();
-    return () => (mounted = false);
-  }, []);
-
-  const filtered = wishes.filter(
-    (w) =>
-      w.title?.toLowerCase().includes(query.toLowerCase()) ||
-      w.description?.toLowerCase().includes(query.toLowerCase())
-  );
+  const timeAgo = wish.created_at
+    ? formatDistanceToNow(new Date(wish.created_at), { addSuffix: true })
+    : "Just now";
 
   return (
-    <>
-      <Head>
-        <title>Explore Wishes — WishhoffRichies</title>
-        <meta name="description" content="Discover verified wishes from real people and help make them come true." />
-      </Head>
+    <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-lg flex flex-col transition hover:shadow-xl overflow-hidden">
+      {/* Wish image */}
+      {wish.image && (
+        <img src={wish.image} alt={wish.title} className="w-full h-40 object-cover rounded-t-2xl" />
+      )}
 
-      <Navbar />
+      <div className="p-6 flex flex-col flex-1">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xl font-bold text-primary dark:text-blue-400">{wish.title}</h3>
+          {wish.verified && (
+            <span className="bg-green-500 text-white px-2 py-1 text-xs rounded-full font-semibold">
+              ✅ Verified
+            </span>
+          )}
+        </div>
 
-      <main className="min-h-screen px-6 py-20 bg-gradient-to-b from-[#f8fafc] to-[#e2e8f0] dark:from-slate-900 dark:to-slate-800">
-        {/* Hero Section */}
-        <section className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-extrabold text-primary mb-4 animate-fade-in">
-            Explore Wishes 💫
-          </h1>
-          <p className="text-slate-600 dark:text-slate-300 max-w-3xl mx-auto mb-6 text-lg">
-            Scroll through heartfelt wishes and discover people whose dreams you can help bring to life.
+        <p className="text-slate-700 dark:text-slate-300 mb-2">{wish.description}</p>
+
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+          Requested by <span className="font-medium">{wish.name}</span>
+        </p>
+        {wish.location && (
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+            📍 {wish.location}
           </p>
-          <div className="flex justify-center">
-            <input
-              type="text"
-              placeholder="🔍 Search wishes..."
-              className="w-full max-w-lg px-5 py-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none transition"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-        </section>
-
-        {/* Loading / Empty States */}
-        {loading ? (
-          <div className="flex justify-center py-16">
-            <p className="text-slate-500 dark:text-slate-400 animate-pulse">Loading wishes…</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center py-16 text-center">
-            <p className="text-slate-600 dark:text-slate-300 mb-4">
-              No wishes match your search — be the first to make one!
-            </p>
-            <Link href="/create-wish" className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition">
-              ✨ Make a Wish
-            </Link>
-          </div>
-        ) : (
-          <>
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filtered.map((wish) => (
-                <div key={wish.id} className="animate-fade-up" style={{ animationDelay: `${Math.random() * 0.3}s` }}>
-                  <WishCard wish={wish} />
-                </div>
-              ))}
-            </div>
-            <div className="text-center mt-12">
-              <button className="px-6 py-3 rounded-lg border border-primary text-primary hover:bg-primary hover:text-white transition">
-                Load More
-              </button>
-            </div>
-          </>
         )}
-      </main>
+        <p className="text-xs text-slate-400 mb-2">{timeAgo}</p>
 
-      <Footer />
-    </>
+        <div className="mt-auto flex flex-col gap-2">
+          <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+            🎯 Amount Needed: <span className="text-primary dark:text-blue-400">${wish.amount}</span>
+          </p>
+
+          <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
+            <div
+              className={`h-3 ${isFulfilled ? "bg-green-500" : "bg-primary dark:bg-blue-400"} transition-all duration-500`}
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {fulfilled} / {wish.amount} fulfilled
+          </p>
+
+          <Link href={`/wish/${wish.id}`}>
+            <button className="w-full py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition font-semibold">
+              View Wish
+            </button>
+          </Link>
+
+          {!isFulfilled && wish.amount > 0 && (
+            <Link href={`/donate/${wish.id}`}>
+              <button className="w-full py-2 rounded-lg border border-primary text-primary dark:text-blue-400 hover:bg-primary/10 dark:hover:bg-blue-900 transition font-semibold">
+                Donate
+              </button>
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {isFulfilled && (
+        <div className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-bounce">
+          ✅ Fulfilled
+        </div>
+      )}
+    </div>
   );
 }
