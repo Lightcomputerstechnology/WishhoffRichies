@@ -46,9 +46,17 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Footer bottom */}
-      <div className="mt-8 border-t border-slate-700 pt-4 text-center text-sm text-slate-400">
-        © {new Date().getFullYear()} WishhoffRichies — Built with 💙 by Light Tech Hub
+      {/* Trust badges / security info */}
+      <div className="mt-8 flex flex-col md:flex-row justify-center md:justify-between items-center gap-4 border-t border-slate-700 pt-4 text-sm text-slate-400">
+        <div className="flex flex-wrap gap-4 justify-center">
+          <span className="px-3 py-1 bg-slate-800 rounded-full">✅ Verified Wishes</span>
+          <span className="px-3 py-1 bg-slate-800 rounded-full">🔒 Secure Payments</span>
+          <span className="px-3 py-1 bg-slate-800 rounded-full">💯 Transparent Donations</span>
+        </div>
+
+        <div className="text-center md:text-right mt-2 md:mt-0">
+          © {new Date().getFullYear()} WishhoffRichies — Built with 💙 by Light Tech Hub
+        </div>
       </div>
     </footer>
   );
