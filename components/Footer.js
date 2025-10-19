@@ -1,4 +1,7 @@
+"use client";
 import Link from "next/link";
+import { FaTwitter, FaFacebookF, FaInstagram, FaLinkedinIn } from "react-icons/fa";
+
 export default function Footer() {
   return (
     <footer className="bg-[#0F172A] text-slate-200 py-12 mt-10 border-t border-slate-700">
@@ -10,10 +13,18 @@ export default function Footer() {
             Inspiring small acts of kindness, one wish at a time.
           </p>
           <div className="flex justify-center md:justify-start gap-4 mt-2">
-            <a href="#" className="hover:text-accent transition">Twitter</a>
-            <a href="#" className="hover:text-accent transition">Instagram</a>
-            <a href="#" className="hover:text-accent transition">LinkedIn</a>
-            <a href="#" className="hover:text-accent transition">Facebook</a>
+            <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition">
+              <FaTwitter size={20} />
+            </a>
+            <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition">
+              <FaInstagram size={20} />
+            </a>
+            <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition">
+              <FaLinkedinIn size={20} />
+            </a>
+            <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-accent transition">
+              <FaFacebookF size={20} />
+            </a>
           </div>
         </div>
 
@@ -25,6 +36,8 @@ export default function Footer() {
           <Link href="/create-wish" className="hover:text-accent transition">Make a Wish</Link>
           <Link href="/faq" className="hover:text-accent transition">FAQ</Link>
           <Link href="/contact" className="hover:text-accent transition">Contact Us</Link>
+          <Link href="/terms" className="hover:text-accent transition">Terms of Service</Link>
+          <Link href="/privacy" className="hover:text-accent transition">Privacy Policy</Link>
         </div>
 
         {/* Newsletter / Call to Action */}
@@ -47,14 +60,13 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Trust badges / security info */}
+      {/* Trust badges / copyright */}
       <div className="mt-8 flex flex-col md:flex-row justify-center md:justify-between items-center gap-4 border-t border-slate-700 pt-4 text-sm text-slate-400">
         <div className="flex flex-wrap gap-4 justify-center">
           <span className="px-3 py-1 bg-slate-800 rounded-full">✅ Verified Wishes</span>
           <span className="px-3 py-1 bg-slate-800 rounded-full">🔒 Secure Payments</span>
           <span className="px-3 py-1 bg-slate-800 rounded-full">💯 Transparent Donations</span>
         </div>
-
         <div className="text-center md:text-right mt-2 md:mt-0">
           © {new Date().getFullYear()} WishhoffRichies — Built with 💙 by Light Tech Hub
         </div>
