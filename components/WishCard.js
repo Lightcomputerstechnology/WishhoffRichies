@@ -1,38 +1,34 @@
 // components/WishCard.js
 "use client";
+// components/WishCard.js
 import Link from "next/link";
 
 export default function WishCard({ wish }) {
-  // Amount already fulfilled (replace with real data if available)
-  const fulfilled = wish.fulfilled || 0; 
+  const fulfilled = wish.fulfilled || 0;
   const progress = Math.min((fulfilled / wish.amount) * 100, 100);
   const isFulfilled = fulfilled >= wish.amount;
 
   return (
-    <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-md hover:shadow-xl transition p-6 flex flex-col justify-between h-full">
-      {/* Fulfilled Badge */}
+    <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 flex flex-col justify-between transition hover:shadow-xl">
       {isFulfilled && (
-        <div className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+        <div className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-bounce">
           ✅ Fulfilled
         </div>
       )}
 
-      {/* Wish Info */}
       <div className="mb-4">
         <h3 className="text-xl font-bold text-primary dark:text-blue-400 mb-2">{wish.title}</h3>
-        <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">{wish.description}</p>
+        <p className="text-slate-700 dark:text-slate-300 mb-3">{wish.description}</p>
         <p className="text-xs text-slate-500 dark:text-slate-400">
           Requested by <span className="font-medium">{wish.name}</span>
         </p>
       </div>
 
-      {/* Amount & Progress */}
-      <div className="mt-auto flex flex-col gap-3">
+      <div className="mt-auto flex flex-col gap-2">
         <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
           🎯 Amount Needed: <span className="text-primary dark:text-blue-400">${wish.amount}</span>
         </p>
 
-        {/* Progress Bar */}
         <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
           <div
             className={`h-3 ${isFulfilled ? "bg-green-500" : "bg-primary dark:bg-blue-400"} transition-all duration-500`}
@@ -43,14 +39,12 @@ export default function WishCard({ wish }) {
           {fulfilled} / {wish.amount} fulfilled
         </p>
 
-        {/* View Wish Button */}
         <Link href={`/wish/${wish.id}`}>
           <button className="w-full py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition font-semibold">
             View Wish
           </button>
         </Link>
 
-        {/* Donate Button (hidden if fully fulfilled) */}
         {!isFulfilled && wish.amount > 0 && (
           <Link href={`/donate/${wish.id}`}>
             <button className="w-full py-2 rounded-lg border border-primary text-primary dark:text-blue-400 hover:bg-primary/10 dark:hover:bg-blue-900 transition font-semibold">
