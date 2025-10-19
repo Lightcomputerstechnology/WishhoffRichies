@@ -46,6 +46,7 @@ export default function HeroSection() {
             with transparency and heart.
           </p>
 
+          {/* Buttons side by side and centered */}
           <div className="flex flex-wrap gap-6 justify-center md:justify-start">
             <Link
               href="/wish/new"
@@ -64,7 +65,7 @@ export default function HeroSection() {
 
         {/* RIGHT SIDE — Featured Wish Card Carousel */}
         <div
-          className="flex-1 max-w-md relative overflow-hidden rounded-2xl"
+          className="flex-1 max-w-md relative overflow-hidden rounded-2xl mx-auto"
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
@@ -75,7 +76,7 @@ export default function HeroSection() {
             {featuredWishes.map((wish, idx) => (
               <div
                 key={idx}
-                className="min-w-full bg-white dark:bg-slate-800 p-6 border-4 border-primary rounded-2xl shadow-md flex flex-col justify-between"
+                className="min-w-full bg-white dark:bg-slate-800 p-6 border-y-4 border-x-2 border-primary rounded-2xl shadow-md flex flex-col justify-between"
               >
                 <h4 className="text-primary font-semibold mb-2">Featured Wish</h4>
                 <h3 className="text-lg font-bold text-dark dark:text-light">{wish.title}</h3>
