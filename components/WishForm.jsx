@@ -6,6 +6,7 @@ export default function WishForm() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
+  const [location, setLocation] = useState("");
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -20,14 +21,13 @@ export default function WishForm() {
       console.error("Image upload error:", error);
       return null;
     }
-    // Get public URL
     const { publicUrl } = supabase.storage.from("wish-images").getPublicUrl(fileName);
     return publicUrl;
   };
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!title || !description || !amount) return alert("Fill all required fields");
+    if (!title || !description || !amount || !location) return alert("Fill all required fields");
 
     setLoading(true);
     let imageUrl = null;
@@ -50,6 +50,7 @@ export default function WishForm() {
         currency: "USD",
         status: "pending",
         image: imageUrl,
+        location,
         verified: false
       }])
       .select()
@@ -62,7 +63,7 @@ export default function WishForm() {
       alert("Error creating wish");
     } else {
       alert("Wish submitted — pending admin approval.");
-      setTitle(""); setDescription(""); setAmount(""); setImage(null);
+      setTitle(""); setDescription(""); setAmount(""); setLocation(""); setImage(null);
     }
   }
 
@@ -102,7 +103,15 @@ export default function WishForm() {
         className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition"
       />
 
-      {/* Image Upload */}
+      <input
+        type="text"
+        placeholder="Location"
+        value={location}
+        onChange={e => setLocation(e.target.value)}
+        required
+        className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition"
+      />
+
       <input
         type="file"
         accept="image/*"
