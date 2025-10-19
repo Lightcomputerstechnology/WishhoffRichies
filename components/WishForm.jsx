@@ -1,4 +1,3 @@
-// components/WishForm.jsx
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
@@ -6,19 +5,27 @@ export default function WishForm() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!title || !description || !amount) return alert("Fill required fields");
+    if (!title || !description || !amount) return alert("Fill all required fields");
 
-    // Simple public insert: marks wish as 'pending' for admin review
-    const { data, error } = await supabase.from("wishes").insert([{
-      title,
-      description,
-      amount_target: parseFloat(amount),
-      currency: "USD",
-      status: "pending"
-    }]).select().single();
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("wishes")
+      .insert([{
+        title,
+        description,
+        amount_target: parseFloat(amount),
+        currency: "USD",
+        status: "pending"
+      }])
+      .select()
+      .single();
+
+    setLoading(false);
 
     if (error) {
       console.error(error);
@@ -30,14 +37,48 @@ export default function WishForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input placeholder="Title" value={title} onChange={e=>setTitle(e.target.value)} required/>
-      <br />
-      <textarea placeholder="Describe the wish" value={description} onChange={e=>setDescription(e.target.value)} required/>
-      <br />
-      <input type="number" placeholder="Amount (USD)" value={amount} onChange={e=>setAmount(e.target.value)} required/>
-      <br />
-      <button type="submit">Submit Wish</button>
+    <form 
+      onSubmit={handleSubmit} 
+      className="max-w-lg mx-auto bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg space-y-4"
+    >
+      <h2 className="text-2xl font-bold text-primary dark:text-accent mb-4 text-center">
+        Submit Your Wish
+      </h2>
+
+      <input
+        type="text"
+        placeholder="Title"
+        value={title}
+        onChange={e => setTitle(e.target.value)}
+        required
+        className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition"
+      />
+
+      <textarea
+        placeholder="Describe the wish"
+        value={description}
+        onChange={e => setDescription(e.target.value)}
+        required
+        rows={4}
+        className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition resize-none"
+      />
+
+      <input
+        type="number"
+        placeholder="Amount (USD)"
+        value={amount}
+        onChange={e => setAmount(e.target.value)}
+        required
+        className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition"
+      />
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-primary dark:bg-accent text-white font-bold py-3 rounded-lg hover:bg-primary/90 dark:hover:bg-accent/90 transition"
+      >
+        {loading ? "Submitting..." : "Submit Wish"}
+      </button>
     </form>
   );
 }
