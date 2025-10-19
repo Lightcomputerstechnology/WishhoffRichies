@@ -1,78 +1,66 @@
 "use client";
-import { useEffect, useState } from "react";
+import Link from "next/link";
 import Head from "next/head";
+import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import WishCard from "../components/WishCard";
 import { supabase } from "../lib/supabaseClient";
 
-// Mockup wishes for immediate display
-const MOCK_WISHES = [
-  { id: "mock1", title: "Travel to Paris", description: "I dream of visiting Paris and seeing the Eiffel Tower!", name: "Alice", amount: 1200 },
-  { id: "mock2", title: "New Laptop", description: "I need a laptop to finish my college projects.", name: "Bob", amount: 850 },
-  { id: "mock3", title: "Charity Donation", description: "Help me support a local orphanage this month.", name: "Clara", amount: 300 },
-  { id: "mock4", title: "Music Studio Setup", description: "I want to record my own songs at home.", name: "David", amount: 1500 },
+// Generate mock data
+const generateMockWishes = () => [
+  { id: "m1", name: "James Smith", title: "New Laptop for Coding", description: "I need a laptop to learn web development and build projects.", amount: 500 },
+  { id: "m2", name: "Emily Johnson", title: "Guitar Lessons", description: "I want to take guitar lessons and start a small band.", amount: 200 },
+  { id: "m3", name: "Michael Brown", title: "Charity Support", description: "Help me fund a small charity project in my neighborhood.", amount: 300 },
+  { id: "m4", name: "Olivia Davis", title: "Medical Expenses", description: "I need assistance with medical bills for my family.", amount: 1000 },
+  { id: "m5", name: "William Miller", title: "Photography Gear", description: "I need a camera and lens to pursue photography professionally.", amount: 750 },
+  { id: "m6", name: "Sophia Wilson", title: "Art Supplies", description: "Help me buy art materials for my school project.", amount: 150 },
+  { id: "m7", name: "Alexander Moore", title: "Laptop Upgrade", description: "My old laptop can't run development software anymore.", amount: 600 },
+  { id: "m8", name: "Isabella Taylor", title: "Music Production Software", description: "I want to create music but need proper software.", amount: 350 },
+  { id: "m9", name: "Ethan Anderson", title: "Basketball Gear", description: "I want to buy proper gear to practice basketball.", amount: 250 },
+  { id: "m10", name: "Mia Thomas", title: "Scholarship Fund", description: "Help me pay for college tuition this semester.", amount: 1200 },
+  { id: "m11", name: "Daniel Jackson", title: "Bike for Commuting", description: "I need a bike to commute to work safely.", amount: 400 },
+  { id: "m12", name: "Charlotte White", title: "Laptop Stand & Desk", description: "Help me create a proper home office setup.", amount: 200 },
+  { id: "m13", name: "Matthew Harris", title: "Coding Bootcamp", description: "I want to join a coding bootcamp to improve my skills.", amount: 1500 },
+  { id: "m14", name: "Amelia Martin", title: "Photography Workshop", description: "I want to attend a photography workshop this summer.", amount: 350 },
+  { id: "m15", name: "David Thompson", title: "Charity Run", description: "Fund my participation in a charity marathon.", amount: 100 },
+  { id: "m16", name: "Grace Garcia", title: "Art Exhibition", description: "I want to showcase my artwork in a local gallery.", amount: 500 },
+  { id: "m17", name: "Joseph Martinez", title: "Musical Instrument", description: "I need a keyboard to learn music composition.", amount: 400 },
+  { id: "m18", name: "Abigail Robinson", title: "Cooking Classes", description: "I want to attend advanced cooking classes.", amount: 250 },
+  { id: "m19", name: "Christopher Clark", title: "Fitness Equipment", description: "I need a home gym setup to stay healthy.", amount: 600 },
+  { id: "m20", name: "Elizabeth Rodriguez", title: "Laptop for School", description: "I need a new laptop for school assignments.", amount: 700 },
 ];
 
 export default function Explore() {
-  const [wishes, setWishes] = useState(MOCK_WISHES);
+  const [wishes, setWishes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
 
   useEffect(() => {
     let mounted = true;
-
-    // Fetch initial wishes and subscribe to live changes
-    async function fetchAndSubscribe() {
+    async function load() {
       try {
-        // Initial fetch
-        const { data, error } = await supabase
-          .from("wishes")
-          .select("*")
-          .order("created_at", { ascending: false });
-
+        // Fetch from Supabase
+        const { data, error } = await supabase.from("wishes").select("*").order("created_at", { ascending: false });
         if (!mounted) return;
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          // Merge new data with mock wishes (avoid duplicates by ID)
-          setWishes((prev) => {
-            const ids = new Set(prev.map((w) => w.id));
-            const merged = [...prev, ...data.filter((w) => !ids.has(w.id))];
-            return merged;
-          });
+        if (error || !data || data.length === 0) {
+          // Fallback to mock data
+          setWishes(generateMockWishes());
+        } else {
+          setWishes(data);
         }
-
-        // Listen for real-time inserts
-        const subscription = supabase
-          .from("wishes")
-          .on("INSERT", (payload) => {
-            setWishes((prev) => {
-              if (prev.find((w) => w.id === payload.new.id)) return prev;
-              return [payload.new, ...prev];
-            });
-          })
-          .subscribe();
-
-        return () => {
-          supabase.removeSubscription(subscription);
-        };
       } catch (err) {
-        console.error("Supabase fetch error:", err);
-        setError("Unable to load real wishes. Showing mock wishes.");
+        console.error(err);
+        setWishes(generateMockWishes());
       } finally {
         setLoading(false);
       }
     }
-
-    fetchAndSubscribe();
-
+    load();
     return () => (mounted = false);
   }, []);
 
-  // Filter wishes by search query
+  // Search filtering
   const filtered = wishes.filter(
     (w) =>
       w.title?.toLowerCase().includes(query.toLowerCase()) ||
@@ -91,52 +79,64 @@ export default function Explore() {
 
       <Navbar />
 
-      <main className="bg-light dark:bg-dark text-dark dark:text-light min-h-screen py-12 px-4 md:px-6">
+      <main className="container mx-auto px-6 py-20 min-h-screen">
         {/* Hero Section */}
-        <section className="text-center mb-16 max-w-4xl mx-auto">
+        <section className="text-center mb-16">
           <h1 className="text-5xl md:text-6xl font-extrabold text-primary mb-4 animate-fade-in">
             Explore Wishes 💫
           </h1>
-          <p className="text-slate-600 dark:text-slate-300 text-lg md:text-xl mb-6">
+          <p className="text-slate-600 dark:text-slate-300 max-w-3xl mx-auto mb-6 text-lg">
             Scroll through heartfelt wishes and discover people whose dreams you can help bring to life.
           </p>
 
-          {/* Search Input */}
+          {/* Search / Filter */}
           <div className="flex justify-center">
             <input
               type="text"
               placeholder="🔍 Search wishes..."
-              className="w-full max-w-md px-5 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary transition shadow-md"
+              className="w-full max-w-lg px-5 py-3 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none transition"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
         </section>
 
-        {/* Status & Wish Grid */}
+        {/* Loading / Empty States */}
         {loading ? (
           <div className="flex justify-center py-16">
-            <p className="text-slate-500 dark:text-slate-400 text-lg animate-pulse">Loading wishes…</p>
+            <p className="text-slate-500 dark:text-slate-400 animate-pulse">Loading wishes…</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center py-16 text-center gap-4">
-            <p className="text-slate-600 dark:text-slate-300 text-lg">No wishes match your search.</p>
-            <Link href="/create-wish" className="px-6 py-3 rounded-xl bg-primary text-white hover:bg-primary/90 transition shadow-md font-semibold">
+          <div className="flex flex-col items-center py-16 text-center">
+            <p className="text-slate-600 dark:text-slate-300 mb-4">
+              No wishes match your search — be the first to make one!
+            </p>
+            <Link
+              href="/wish/new"
+              className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition"
+            >
               ✨ Make a Wish
             </Link>
           </div>
         ) : (
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filtered.map((w) => (
-              <div key={w.id} className="animate-fade-up" style={{ animationDelay: `${Math.random() * 0.3}s` }}>
-                <WishCard wish={w} />
-              </div>
-            ))}
-          </div>
-        )}
+          <>
+            {/* Wish Grid */}
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filtered.map((w) => (
+                <div key={w.id} className="animate-fade-up" style={{ animationDelay: `${Math.random() * 0.3}s` }}>
+                  <WishCard wish={w} />
+                </div>
+              ))}
+            </div>
 
-        {/* Error Message */}
-        {error && <p className="text-center mt-8 text-red-500 font-medium">{error}</p>}
+            {/* Load More Button */}
+            <div className="text-center mt-12">
+              <button className="px-6 py-3 rounded-lg border border-primary text-primary hover:bg-primary hover:text-white transition">
+                Load More
+              </button>
+            </div>
+          </>
+        )}
       </main>
 
       <Footer />
