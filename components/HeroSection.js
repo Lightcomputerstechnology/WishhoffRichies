@@ -2,76 +2,58 @@ import Link from "next/link";
 
 export default function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[#0b3d91] via-[#2563eb] to-[#0f172a] text-white py-24">
-      <div className="container mx-auto px-6 flex flex-col items-center justify-center text-center gap-10">
-        {/* CENTERED TEXT */}
-        <div className="max-w-2xl animate-fade-up">
+    <section className="relative bg-gradient-to-b from-[#0b3d91] via-[#2563eb] to-[#0f172a] text-white py-24">
+      <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-12">
+        {/* LEFT SIDE — Text */}
+        <div className="flex-1 max-w-lg text-center md:text-left animate-fade-up">
           <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-4 drop-shadow-lg">
-            Turn <span className="text-accent">Wishes</span> into Reality ✨
+            Turn <span className="text-accent">Wishes</span> into Reality
           </h1>
 
           <p className="text-lg text-light/90 mb-8 leading-relaxed">
-            WishhoffRichies connects kind donors with real people in need —
-            safe, transparent, and human-first giving for all.
+            A secure and human platform where verified donors fund honest needs —
+            with transparency and heart.
           </p>
 
-          <div className="flex flex-wrap gap-6 justify-center">
+          <div className="flex flex-wrap gap-6 justify-center md:justify-start">
             <Link
               href="/wish/new"
-              className="bg-light text-primary font-bold px-8 py-4 rounded-lg hover:bg-accent hover:text-white transition shadow-lg"
+              className="bg-light text-primary font-bold px-8 py-4 rounded-lg shadow-lg hover:bg-accent hover:text-white transition"
             >
-              🌠 Make a Wish
+              Make a Wish
             </Link>
             <Link
               href="/explore"
-              className="border-2 border-light text-light font-bold px-8 py-4 rounded-lg hover:bg-light hover:text-primary transition shadow-lg"
+              className="border-2 border-light text-light font-bold px-8 py-4 rounded-lg shadow-lg hover:bg-light hover:text-primary transition"
             >
-              🌍 Browse Wishes
+              Browse Wishes
             </Link>
           </div>
         </div>
 
-        {/* SMOOTH SLIDING FEATURED WISHES */}
-        <div className="w-full max-w-xl overflow-hidden rounded-2xl bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700">
-          <div className="relative overflow-hidden">
-            <div className="inline-flex animate-marquee hover:pause">
-              {[
-                { title: "School Fees for Ada", raised: 620, goal: 1000 },
-                { title: "Medical Help for Chinedu", raised: 420, goal: 800 },
-                { title: "Food Support for Ngozi", raised: 950, goal: 950 },
-                { title: "Rent Aid for Musa", raised: 200, goal: 600 },
-              ].map((wish, i) => (
-                <div
-                  key={i}
-                  className="inline-block w-full px-6 py-6 text-center align-top"
-                >
-                  <h4 className="text-primary font-semibold mb-1">
-                    Featured Wish
-                  </h4>
-                  <h3 className="text-lg font-bold text-dark dark:text-light">
-                    {wish.title}
-                  </h3>
+        {/* RIGHT SIDE — Featured Wish Card */}
+        <div className="flex-1 max-w-md bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md border border-slate-100 dark:border-slate-700 animate-fade-up">
+          <h4 className="text-primary font-semibold mb-2">Featured Wish</h4>
+          <h3 className="text-lg font-bold text-dark dark:text-light">
+            School Fees for Ada
+          </h3>
 
-                  <div className="mt-3 bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
-                    <div
-                      style={{ width: `${(wish.raised / wish.goal) * 100}%` }}
-                      className="bg-primary h-3 rounded-full transition-all"
-                    ></div>
-                  </div>
-
-                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                    ${wish.raised} raised of ${wish.goal} goal
-                  </p>
-                </div>
-              ))}
-            </div>
+          <div className="mt-3 bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
+            <div
+              style={{ width: "62%" }}
+              className="bg-primary h-3 rounded-full transition-all"
+            ></div>
           </div>
+
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            $620 raised of $1000 goal
+          </p>
 
           <Link
             href="/explore"
-            className="block mt-2 mb-4 text-center text-primary font-semibold hover:text-accent transition"
+            className="mt-4 inline-block px-5 py-2 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90 transition"
           >
-            View All Wishes →
+            View Wishes
           </Link>
         </div>
       </div>
@@ -92,24 +74,6 @@ export default function HeroSection() {
           </svg>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes marquee {
-          0% {
-            transform: translateX(0%);
-          }
-          100% {
-            transform: translateX(-400%);
-          }
-        }
-        .animate-marquee {
-          display: inline-flex;
-          animation: marquee 40s linear infinite;
-        }
-        .hover\\:pause:hover {
-          animation-play-state: paused;
-        }
-      `}</style>
     </section>
   );
 }
