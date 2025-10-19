@@ -18,7 +18,7 @@
     "stripe": "14.25.0",
     "aos": "2.3.4",
     "react-icons": "^4.11.0",
-    "date-fns": "^2.31.0"
+    "date-fns": "^4.1.0"
   },
   "devDependencies": {
     "autoprefixer": "10.4.14",
