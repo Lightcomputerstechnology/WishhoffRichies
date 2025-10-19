@@ -11,14 +11,16 @@
   "dependencies": {
     "@sendgrid/mail": "^8.1.0",
     "@supabase/supabase-js": "2.39.6",
+    "aos": "2.3.4",
+    "date-fns": "^4.1.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.2",
     "micro": "10.0.1",
     "next": "14.2.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "stripe": "14.25.0",
-    "aos": "2.3.4",
     "react-icons": "^4.11.0",
-    "date-fns": "^4.1.0"
+    "stripe": "14.25.0"
   },
   "devDependencies": {
     "autoprefixer": "10.4.14",
