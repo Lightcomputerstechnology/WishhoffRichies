@@ -1,35 +1,47 @@
+// pages/make-wish.js
 import { useState } from "react";
 import Head from "next/head";
+import KYCModal from "../components/KYCModal";
 
 export default function MakeWish() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    title: "",
+    description: "",
+    amount: "",
+  });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [showKYC, setShowKYC] = useState(false);
+
+  const handleChange = (e) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     setMessage("");
 
+    // Basic validation
+    if (!formData.name || !formData.email || !formData.title || !formData.description || !formData.amount) {
+      setMessage("Please fill in all required fields.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/wishes/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, title, description, amount }),
+        body: JSON.stringify(formData),
       });
-
       const data = await res.json();
+
       if (res.ok) {
         setMessage("🎉 Wish created successfully!");
-        setName("");
-        setEmail("");
-        setTitle("");
-        setDescription("");
-        setAmount("");
+        setFormData({ name: "", email: "", title: "", description: "", amount: "" });
+        setShowKYC(true); // Prompt KYC after creating wish
       } else {
         setMessage(data.error || "Something went wrong.");
       }
@@ -46,99 +58,66 @@ export default function MakeWish() {
         <title>Make a Wish | WishhoffRichies</title>
       </Head>
 
-      <main className="container">
-        <h1>💫 Create Your Wish</h1>
-        <p>Share your dream — and let the world help you make it come true.</p>
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#0b3d91] via-[#2563eb] to-[#0f172a] p-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-lg p-6 md:p-10">
+          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-4 text-center">
+            💫 Create Your Wish
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-300 text-center mb-6">
+            Share your dream and let the world help make it come true.
+          </p>
 
-        <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            placeholder="Your Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <input
-            type="email"
-            placeholder="Your Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Wish Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-          <textarea
-            placeholder="Describe your wish..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-          />
-          <input
-            type="number"
-            placeholder="Target Amount (USD)"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            required
-          />
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {["name", "email", "title", "description", "amount"].map((field) => (
+              field !== "description" ? (
+                <input
+                  key={field}
+                  type={field === "email" ? "email" : field === "amount" ? "number" : "text"}
+                  name={field}
+                  placeholder={field === "amount" ? "Target Amount (USD)" : `Your ${field.charAt(0).toUpperCase() + field.slice(1)}`}
+                  value={formData[field]}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary transition"
+                />
+              ) : (
+                <textarea
+                  key={field}
+                  name={field}
+                  placeholder="Describe your wish..."
+                  value={formData[field]}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary transition min-h-[100px]"
+                />
+              )
+            ))}
 
-          <button type="submit" disabled={loading}>
-            {loading ? "Submitting..." : "Submit Wish"}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? "Submitting..." : "Submit Wish"}
+            </button>
+          </form>
 
-        {message && <p className="msg">{message}</p>}
+          {message && (
+            <p className="text-center mt-4 text-sm font-medium text-slate-800 dark:text-slate-100">
+              {message}
+            </p>
+          )}
+        </div>
       </main>
 
-      <style jsx>{`
-        .container {
-          max-width: 600px;
-          margin: 3rem auto;
-          padding: 2rem;
-          background: #fff;
-          border-radius: 12px;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-          text-align: center;
-        }
-
-        input,
-        textarea {
-          width: 100%;
-          padding: 0.8rem;
-          margin: 0.5rem 0;
-          border: 1px solid #ccc;
-          border-radius: 8px;
-          font-size: 1rem;
-        }
-
-        textarea {
-          min-height: 100px;
-        }
-
-        button {
-          background: #0070f3;
-          color: white;
-          border: none;
-          padding: 0.8rem 1.2rem;
-          border-radius: 8px;
-          cursor: pointer;
-          margin-top: 1rem;
-          transition: 0.2s;
-        }
-
-        button:hover {
-          background: #0059c1;
-        }
-
-        .msg {
-          margin-top: 1rem;
-          font-weight: bold;
-        }
-      `}</style>
+      {/* KYC Modal */}
+      {showKYC && (
+        <KYCModal
+          userId={formData.email} // or any unique user ID
+          onUploaded={() => setShowKYC(false)}
+          onClose={() => setShowKYC(false)}
+        />
+      )}
     </>
   );
 }
