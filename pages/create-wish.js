@@ -1,4 +1,6 @@
 // pages/create-wish.js
+"use client";
+import Link from "next/link";
 import { useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
