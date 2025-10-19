@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
@@ -5,13 +6,40 @@ export default function WishForm() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
+  const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Upload image to Supabase Storage
+  const uploadImage = async (file) => {
+    const fileName = `${Date.now()}_${file.name}`;
+    const { data, error } = await supabase.storage
+      .from("wish-images")
+      .upload(fileName, file);
+
+    if (error) {
+      console.error("Image upload error:", error);
+      return null;
+    }
+    // Get public URL
+    const { publicUrl } = supabase.storage.from("wish-images").getPublicUrl(fileName);
+    return publicUrl;
+  };
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!title || !description || !amount) return alert("Fill all required fields");
 
     setLoading(true);
+    let imageUrl = null;
+
+    if (image) {
+      imageUrl = await uploadImage(image);
+      if (!imageUrl) {
+        alert("Image upload failed. Submit without image or try again.");
+        setLoading(false);
+        return;
+      }
+    }
 
     const { data, error } = await supabase
       .from("wishes")
@@ -20,7 +48,9 @@ export default function WishForm() {
         description,
         amount_target: parseFloat(amount),
         currency: "USD",
-        status: "pending"
+        status: "pending",
+        image: imageUrl,
+        verified: false
       }])
       .select()
       .single();
@@ -32,7 +62,7 @@ export default function WishForm() {
       alert("Error creating wish");
     } else {
       alert("Wish submitted — pending admin approval.");
-      setTitle(""); setDescription(""); setAmount("");
+      setTitle(""); setDescription(""); setAmount(""); setImage(null);
     }
   }
 
@@ -70,6 +100,14 @@ export default function WishForm() {
         onChange={e => setAmount(e.target.value)}
         required
         className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-accent transition"
+      />
+
+      {/* Image Upload */}
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => setImage(e.target.files[0])}
+        className="w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90 transition"
       />
 
       <button
