@@ -1,47 +1,82 @@
 "use client";
 import { useEffect, useState } from "react";
 import Head from "next/head";
-import Link from "next/link";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import WishCard from "../components/WishCard";
+import { supabase } from "../lib/supabaseClient";
+
+// Mockup wishes for immediate display
+const MOCK_WISHES = [
+  { id: "mock1", title: "Travel to Paris", description: "I dream of visiting Paris and seeing the Eiffel Tower!", name: "Alice", amount: 1200 },
+  { id: "mock2", title: "New Laptop", description: "I need a laptop to finish my college projects.", name: "Bob", amount: 850 },
+  { id: "mock3", title: "Charity Donation", description: "Help me support a local orphanage this month.", name: "Clara", amount: 300 },
+  { id: "mock4", title: "Music Studio Setup", description: "I want to record my own songs at home.", name: "David", amount: 1500 },
+];
 
 export default function Explore() {
-  const [wishes, setWishes] = useState([]);
+  const [wishes, setWishes] = useState(MOCK_WISHES);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const LIMIT = 12; // wishes per page
 
   useEffect(() => {
-    fetchWishes(page);
-  }, [page]);
+    let mounted = true;
 
-  const fetchWishes = async (pageNumber = 1) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/wishes/list?page=${pageNumber}&limit=${LIMIT}`);
-      const data = await res.json();
+    // Fetch initial wishes and subscribe to live changes
+    async function fetchAndSubscribe() {
+      try {
+        // Initial fetch
+        const { data, error } = await supabase
+          .from("wishes")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-      if (!res.ok) throw new Error(data.error || "Failed to fetch wishes");
+        if (!mounted) return;
 
-      if (pageNumber === 1) setWishes(data.wishes);
-      else setWishes((prev) => [...prev, ...data.wishes]);
+        if (error) throw error;
 
-      setHasMore(data.wishes.length === LIMIT);
-    } catch (err) {
-      console.error(err);
-      setError("Unable to load wishes right now.");
-    } finally {
-      setLoading(false);
+        if (data && data.length > 0) {
+          // Merge new data with mock wishes (avoid duplicates by ID)
+          setWishes((prev) => {
+            const ids = new Set(prev.map((w) => w.id));
+            const merged = [...prev, ...data.filter((w) => !ids.has(w.id))];
+            return merged;
+          });
+        }
+
+        // Listen for real-time inserts
+        const subscription = supabase
+          .from("wishes")
+          .on("INSERT", (payload) => {
+            setWishes((prev) => {
+              if (prev.find((w) => w.id === payload.new.id)) return prev;
+              return [payload.new, ...prev];
+            });
+          })
+          .subscribe();
+
+        return () => {
+          supabase.removeSubscription(subscription);
+        };
+      } catch (err) {
+        console.error("Supabase fetch error:", err);
+        setError("Unable to load real wishes. Showing mock wishes.");
+      } finally {
+        setLoading(false);
+      }
     }
-  };
 
-  const filtered = wishes.filter((w) =>
-    w.title?.toLowerCase().includes(query.toLowerCase()) ||
-    w.description?.toLowerCase().includes(query.toLowerCase())
+    fetchAndSubscribe();
+
+    return () => (mounted = false);
+  }, []);
+
+  // Filter wishes by search query
+  const filtered = wishes.filter(
+    (w) =>
+      w.title?.toLowerCase().includes(query.toLowerCase()) ||
+      w.description?.toLowerCase().includes(query.toLowerCase())
   );
 
   return (
@@ -63,8 +98,7 @@ export default function Explore() {
             Explore Wishes 💫
           </h1>
           <p className="text-slate-600 dark:text-slate-300 text-lg md:text-xl mb-6">
-            Scroll through heartfelt wishes and discover people whose dreams you can help
-            bring to life.
+            Scroll through heartfelt wishes and discover people whose dreams you can help bring to life.
           </p>
 
           {/* Search Input */}
@@ -79,64 +113,30 @@ export default function Explore() {
           </div>
         </section>
 
-        {/* Status Handling */}
-        {loading && wishes.length === 0 ? (
+        {/* Status & Wish Grid */}
+        {loading ? (
           <div className="flex justify-center py-16">
-            <p className="text-slate-500 dark:text-slate-400 text-lg animate-pulse">
-              Loading wishes…
-            </p>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center py-12 text-center gap-4">
-            <p className="text-red-500 font-medium">{error}</p>
-            <button
-              onClick={() => fetchWishes(page)}
-              className="px-6 py-3 rounded-xl bg-primary text-white hover:bg-primary/90 transition shadow-md font-semibold"
-            >
-              Try Again
-            </button>
+            <p className="text-slate-500 dark:text-slate-400 text-lg animate-pulse">Loading wishes…</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center py-16 text-center gap-4">
-            <p className="text-slate-600 dark:text-slate-300 text-lg">
-              No wishes match your search — or none have been added yet.
-            </p>
-            <Link
-              href="/wish/new"
-              className="px-6 py-3 rounded-xl bg-primary text-white hover:bg-primary/90 transition shadow-md font-semibold"
-            >
+            <p className="text-slate-600 dark:text-slate-300 text-lg">No wishes match your search.</p>
+            <Link href="/create-wish" className="px-6 py-3 rounded-xl bg-primary text-white hover:bg-primary/90 transition shadow-md font-semibold">
               ✨ Make a Wish
             </Link>
           </div>
         ) : (
-          <>
-            {/* Wish Grid */}
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filtered.map((w) => (
-                <div
-                  key={w.id}
-                  className="animate-fade-up"
-                  style={{ animationDelay: `${Math.random() * 0.3}s` }}
-                >
-                  <WishCard wish={w} />
-                </div>
-              ))}
-            </div>
-
-            {/* Load More Button */}
-            {hasMore && (
-              <div className="text-center mt-12">
-                <button
-                  onClick={() => setPage((prev) => prev + 1)}
-                  className="px-6 py-3 rounded-xl border border-primary text-primary hover:bg-primary hover:text-white transition shadow-md font-semibold"
-                  disabled={loading}
-                >
-                  {loading ? "Loading..." : "Load More Wishes"}
-                </button>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filtered.map((w) => (
+              <div key={w.id} className="animate-fade-up" style={{ animationDelay: `${Math.random() * 0.3}s` }}>
+                <WishCard wish={w} />
               </div>
-            )}
-          </>
+            ))}
+          </div>
         )}
+
+        {/* Error Message */}
+        {error && <p className="text-center mt-8 text-red-500 font-medium">{error}</p>}
       </main>
 
       <Footer />
