@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import Head from "next/head";
-import KYCModal from "../components/KYCModal";
+import KYCModal from "../components/KYCModals";
 
 export default function MakeWish() {
   const [formData, setFormData] = useState({
