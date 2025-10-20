@@ -15,9 +15,11 @@ export default function DonatePage() {
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("stripe");
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  // Fetch wish from Supabase
+  // Load wish details
   useEffect(() => {
     if (!wishId) return;
     const fetchWish = async () => {
@@ -34,18 +36,36 @@ export default function DonatePage() {
     fetchWish();
   }, [wishId]);
 
+  // Handle donation
   const handleDonate = async () => {
-    if (!amount || isNaN(amount) || Number(amount) <= 0) return;
+    if (!amount || Number(amount) <= 0) {
+      setError("Please enter a valid donation amount.");
+      return;
+    }
+    setError("");
+    setProcessing(true);
 
-    // MOCK payment flow
-    console.log("Donating", amount, "via", paymentMethod);
-    setSuccess(true);
-    setTimeout(() => {
-      alert(
-        `Donation of $${amount} to "${wish.title}" via ${paymentMethod} successful!`
-      );
-      router.push("/explore");
-    }, 500);
+    try {
+      // Call Supabase Edge Function: init-payment
+      const { data, error } = await supabase.functions.invoke("init-payment", {
+        body: {
+          amount,
+          method: paymentMethod,
+          wishId,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.checkout_url) throw new Error("Invalid payment response.");
+
+      // Redirect to payment gateway
+      window.location.href = data.checkout_url;
+    } catch (err) {
+      console.error("Donation error:", err);
+      setError("Failed to initiate donation. Please try again.");
+    } finally {
+      setProcessing(false);
+    }
   };
 
   if (loading)
@@ -89,11 +109,10 @@ export default function DonatePage() {
               Requested by: <strong>{wish.name}</strong>
             </p>
             <p className="text-slate-500 dark:text-slate-400">
-              Amount Needed: <strong>${wish.amount}</strong>
+              Goal: <strong>${wish.amount}</strong>
             </p>
           </div>
 
-          {/* Donation Input */}
           <div className="flex flex-col gap-2">
             <label className="font-medium text-slate-700 dark:text-slate-200">
               Donation Amount ($)
@@ -102,12 +121,11 @@ export default function DonatePage() {
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder={`Suggested: $${wish.amount}`}
+              placeholder={`e.g. ${wish.amount}`}
               className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary transition"
             />
           </div>
 
-          {/* Payment Method */}
           <div className="flex flex-col gap-2">
             <label className="font-medium text-slate-700 dark:text-slate-200">
               Choose Payment Method
@@ -123,18 +141,24 @@ export default function DonatePage() {
             </select>
           </div>
 
-          <button
-            onClick={handleDonate}
-            className="w-full py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 transition"
-          >
-            Donate Now
-          </button>
-
+          {error && <p className="text-red-500 text-center">{error}</p>}
           {success && (
             <p className="text-green-500 text-center font-medium">
               Donation successful! Redirecting…
             </p>
           )}
+
+          <button
+            onClick={handleDonate}
+            disabled={processing}
+            className={`w-full py-3 rounded-lg font-semibold text-white transition ${
+              processing
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-primary hover:bg-primary/90"
+            }`}
+          >
+            {processing ? "Processing..." : "Donate Now"}
+          </button>
         </section>
       </main>
 
