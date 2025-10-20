@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import Head from "next/head";
-import KYCModal from "../components/KYCModals";
+import KYCModal from "../components/KYCModal";
 
 export default function MakeWish() {
   const [formData, setFormData] = useState({
@@ -114,7 +114,7 @@ export default function MakeWish() {
 
       {/* KYC Modal */}
       {showKYC && (
-        <KYCModals
+        <KYCModal
           userId={formData.email} // or any unique user ID
           onUploaded={() => setShowKYC(false)}
           onClose={() => setShowKYC(false)}
