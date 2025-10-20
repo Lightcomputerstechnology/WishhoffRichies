@@ -2,7 +2,7 @@
 import AdminLayout from "../../components/AdminLayout";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
-import KYCModal from "../../components/KYCModals";
+import KYCModal from "../../components/KYCModal";
 
 export default function ModerationPage() {
   const [wishes, setWishes] = useState([]);
@@ -82,7 +82,7 @@ export default function ModerationPage() {
       )}
 
       {showKycFor && (
-        <KYCModals userId={showKycFor} onUploaded={() => { setShowKycFor(null); }} onClose={() => setShowKycFor(null)} />
+        <KYCModal userId={showKycFor} onUploaded={() => { setShowKycFor(null); }} onClose={() => setShowKycFor(null)} />
       )}
     </AdminLayout>
   );
