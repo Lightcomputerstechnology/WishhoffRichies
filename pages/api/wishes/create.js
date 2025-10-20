@@ -1,98 +1,48 @@
-import { useState } from "react";
-import { toast } from "react-hot-toast";
+import { createClient } from "@supabase/supabase-js";
 
-export default function MakeAWish() {
-  const [form, setForm] = useState({
-    user_id: "",
-    title: "",
-    description: "",
-    category: "",
-    target_amount: "",
-    image_url: "",
-    payment_method: "",
-  });
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+export default async function handler(req, res) {
+  if (req.method === "POST") {
     try {
-      const res = await fetch("/api/wishes/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
+      const { user_id, title, description, category, target_amount, image_url, payment_method } = req.body;
 
-      const data = await res.json();
+      if (!title || !description) {
+        return res.status(400).json({ error: "Title and description are required." });
+      }
 
-      if (!res.ok) throw new Error(data.error || "Failed to create wish");
+      // Save wish to Supabase
+      const { data, error } = await supabase
+        .from("wishes")
+        .insert([
+          {
+            user_id,
+            title,
+            description,
+            category,
+            target_amount,
+            image_url,
+            payment_method,
+          },
+        ])
+        .select();
 
-      toast.success("Wish created successfully!");
-      setForm({
-        user_id: "",
-        title: "",
-        description: "",
-        category: "",
-        target_amount: "",
-        image_url: "",
-        payment_method: "",
+      if (error) throw error;
+
+      return res.status(200).json({
+        success: true,
+        message: "Wish created successfully!",
+        data,
       });
     } catch (err) {
-      toast.error(err.message);
-      console.error("Create wish error:", err);
+      console.error("Error creating wish:", err);
+      return res.status(500).json({ error: err.message || "Internal Server Error" });
     }
-  };
-
-  return (
-    <div className="max-w-2xl mx-auto mt-10 p-6 bg-gray-900 text-white rounded-lg shadow-md">
-      <h1 className="text-2xl font-bold mb-4">✨ Make a Wish</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          name="title"
-          placeholder="Wish title"
-          value={form.title}
-          onChange={handleChange}
-          className="w-full p-2 bg-gray-800 border border-gray-700 rounded"
-        />
-        <textarea
-          name="description"
-          placeholder="Description"
-          value={form.description}
-          onChange={handleChange}
-          className="w-full p-2 bg-gray-800 border border-gray-700 rounded"
-        />
-        <input
-          name="category"
-          placeholder="Category"
-          value={form.category}
-          onChange={handleChange}
-          className="w-full p-2 bg-gray-800 border border-gray-700 rounded"
-        />
-        <input
-          name="target_amount"
-          placeholder="Target amount"
-          value={form.target_amount}
-          onChange={handleChange}
-          className="w-full p-2 bg-gray-800 border border-gray-700 rounded"
-        />
-        <input
-          name="payment_method"
-          placeholder="Payment method"
-          value={form.payment_method}
-          onChange={handleChange}
-          className="w-full p-2 bg-gray-800 border border-gray-700 rounded"
-        />
-
-        <button
-          type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded font-semibold"
-        >
-          Submit Wish
-        </button>
-      </form>
-    </div>
-  );
+  } else {
+    res.setHeader("Allow", ["POST"]);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
 }
