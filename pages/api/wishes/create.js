@@ -1,54 +1,94 @@
-// pages/api/wishes/create.js
-import { supabaseAdmin } from "../../../lib/supabaseClient";
-import { sendEmail } from "../../../lib/mail";
+// supabase/functions/create-wish/index.js
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-  const { name, email, title, description, amount } = req.body;
-  if (!name || !email || !title || !description || !amount) return res.status(400).json({ error: "missing fields" });
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL'),
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+);
+
+const ADMIN_EMAILS = (Deno.env.get('ADMIN_EMAILS') || '').split(',').map(e => e.trim()).filter(Boolean);
+const SITE_URL = Deno.env.get('NEXT_PUBLIC_SITE_URL') || '';
+
+Deno.serve(async (req) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+  }
 
   try {
-    const supa = supabaseAdmin();
-    // Get or create user
-    const { data: existing } = await supa.from("users").select("*").eq("email", email).limit(1).maybeSingle();
+    const body = await req.json();
+    const { name, email, title, description, amount } = body;
+
+    if (!name || !email || !title || !description || !amount) {
+      return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400 });
+    }
+
+    // ✅ Get or create user
+    let { data: existing } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+
     let userId = existing?.id;
+
     if (!userId) {
-      const { data: newUser, error: uErr } = await supa.from("users").insert([{ name, email }]).select().single();
-      if (uErr) throw uErr;
+      const { data: newUser, error: userErr } = await supabase
+        .from('users')
+        .insert([{ name, email }])
+        .select()
+        .single();
+      if (userErr) throw userErr;
       userId = newUser.id;
     }
 
-    const { data, error } = await supa.from("wishes").insert([{
-      user_id: userId,
-      name,
-      title,
-      description,
-      amount,
-      status: "pending",
-      created_at: new Date().toISOString()
-    }]).select().single();
+    // ✅ Create wish record
+    const { data, error } = await supabase
+      .from('wishes')
+      .insert([
+        {
+          user_id: userId,
+          name,
+          title,
+          description,
+          amount,
+          status: 'pending',
+          created_at: new Date().toISOString()
+        }
+      ])
+      .select()
+      .single();
 
     if (error) throw error;
 
-    // Notify admin(s) by email (you can maintain a list of admin emails in env var or a table)
-    const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim()).filter(Boolean);
-    if (adminEmails.length > 0) {
+    // ✅ Optional: Send email notification (use Resend, Brevo, etc. via webhook)
+    if (ADMIN_EMAILS.length > 0) {
       const subject = `New wish submitted: ${title}`;
-      const html = `<p>A new wish has been submitted:</p>
+      const html = `
+        <p>A new wish has been submitted:</p>
         <ul>
           <li><strong>Title:</strong> ${title}</li>
           <li><strong>Name:</strong> ${name} (${email})</li>
           <li><strong>Amount:</strong> $${amount}</li>
         </ul>
-        <p><a href="${process.env.NEXT_PUBLIC_SITE_URL || ""}/moderation">Review in moderation</a></p>`;
-      for (const to of adminEmails) {
-        try { await sendEmail({ to, subject, html }); } catch (e) { console.warn("admin notify failed", e?.message); }
+        <p><a href="${SITE_URL}/moderation">Review in moderation</a></p>
+      `;
+
+      // Example: send to a 3rd-party mail API endpoint
+      for (const to of ADMIN_EMAILS) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ from: 'Light <no-reply@dealcross.net>', to, subject, html })
+        }).catch(() => {});
       }
     }
 
-    return res.status(200).json(data);
+    return new Response(JSON.stringify(data), { status: 200 });
   } catch (err) {
-    console.error("create wish error:", err);
-    return res.status(500).json({ error: "Failed to create wish" });
+    console.error('create-wish error:', err);
+    return new Response(JSON.stringify({ error: 'Failed to create wish' }), { status: 500 });
   }
-}
+});
