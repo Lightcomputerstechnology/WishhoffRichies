@@ -1,5 +1,5 @@
 // supabase/functions/create-wish/index.js
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
 
 // ✅ Create Supabase client using environment variables
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
