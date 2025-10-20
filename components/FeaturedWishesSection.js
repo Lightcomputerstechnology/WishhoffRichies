@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import AOS from "aos";
 import "aos/dist/aos.css";
-import Link from "next/link";
+import DonateButton from "./DonateButton"; // ✅ use the unified payment button
 
-// Updated featured wishes with images, verified, location, and amount
+// ✅ You can later fetch these dynamically from Supabase if needed
 const featuredWishes = [
   { id: "f1", name: "Ada Johnson", title: "School Fees", raised: 620, goal: 1000, verified: true, location: "Lagos", image: "/sample1.jpg" },
   { id: "f2", name: "Chika Okafor", title: "Medical Support", raised: 340, goal: 500, verified: false, location: "Abuja", image: "/sample2.jpg" },
@@ -46,7 +46,9 @@ export default function FeaturedWishesSection() {
                   className="w-full h-40 object-cover rounded-xl mb-4"
                 />
 
-                <h3 className="text-xl font-bold text-primary dark:text-blue-400 mb-1">{wish.title}</h3>
+                <h3 className="text-xl font-bold text-primary dark:text-blue-400 mb-1">
+                  {wish.title}
+                </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
                   By {wish.name} • {wish.location}
                 </p>
@@ -54,7 +56,11 @@ export default function FeaturedWishesSection() {
                 <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden mb-2">
                   <div
                     style={{ width: `${progress}%` }}
-                    className={`h-3 ${progress >= 100 ? "bg-green-500" : "bg-primary dark:bg-blue-400"} transition-all duration-500`}
+                    className={`h-3 ${
+                      progress >= 100
+                        ? "bg-green-500"
+                        : "bg-primary dark:bg-blue-400"
+                    } transition-all duration-500`}
                   ></div>
                 </div>
 
@@ -62,11 +68,8 @@ export default function FeaturedWishesSection() {
                   ${wish.raised} raised of ${wish.goal} goal
                 </p>
 
-                <Link href={`/donate/${wish.id}`}>
-                  <button className="w-full py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition font-semibold">
-                    Donate
-                  </button>
-                </Link>
+                {/* ✅ Use the new unified DonateButton */}
+                <DonateButton wishId={wish.id} />
               </div>
             );
           })}
