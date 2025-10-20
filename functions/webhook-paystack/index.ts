@@ -1,74 +1,129 @@
-// functions/webhook-paystack/index.ts
 import { serve } from "std/server";
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE")!;
-const PAYSTACK_SECRET = Deno.env.get("PAYSTACK_SECRET")!; // same secret used to initialize
+const PAYSTACK_SECRET = Deno.env.get("PAYSTACK_SECRET")!;
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 
 serve(async (req) => {
   try {
-    const text = await req.text();
-    const sig = req.headers.get("x-paystack-signature") || req.headers.get("X-Paystack-Signature");
-    // Verify signature using HMAC SHA512 with PAYSTACK_SECRET
+    const rawBody = await req.text();
+    const sigHeader =
+      req.headers.get("x-paystack-signature") ||
+      req.headers.get("X-Paystack-Signature");
+
+    // ✅ Verify signature using SHA512 HMAC manually
     const encoder = new TextEncoder();
     const keyData = encoder.encode(PAYSTACK_SECRET);
-    const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-512" }, false, ["verify"]);
-    const sigData = encoder.encode(text);
-    const isValid = await crypto.subtle.verify("HMAC", cryptoKey, hexToUint8Array(sig || ""), sigData).catch(() => false);
+    const msgUint8 = encoder.encode(rawBody);
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      keyData,
+      { name: "HMAC", hash: "SHA-512" },
+      false,
+      ["sign"]
+    );
+    const signatureBuffer = await crypto.subtle.sign("HMAC", cryptoKey, msgUint8);
+    const computedSig = Array.from(new Uint8Array(signatureBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
 
-    // NOTE: Some runtimes can't compare hex easily; if signature not present, you may trust payload (not ideal)
-    // For safety, check event and reference in payload:
-    const payload = JSON.parse(text);
-    if (!isValid) {
-      console.warn("Invalid paystack signature, ignoring");
-      // continue but don't update DB; return 400
-      return new Response("Invalid signature", { status: 400 });
+    if (!sigHeader || computedSig !== sigHeader) {
+      console.warn("❌ Invalid Paystack signature");
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        status: 400,
+      });
     }
 
-    // On successful transaction event
-    if (payload.event === "charge.success" || payload.event === "transaction.success") {
+    // ✅ Parse and process event
+    let payload: any = {};
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+        status: 400,
+      });
+    }
+
+    if (
+      payload.event === "charge.success" ||
+      payload.event === "transaction.success"
+    ) {
       const data = payload.data;
-      const refPaymentId = data?.metadata?.paymentId || extractPaymentIdFromReference(data?.reference);
+      const paymentId =
+        data?.metadata?.payment_id ||
+        extractPaymentIdFromReference(data?.reference);
 
-      // fetch payment row
-      const { data: paymentRow } = await supabase.from("payments").select("*").eq("id", refPaymentId).maybeSingle();
+      if (!paymentId) {
+        console.warn("No payment ID found in webhook payload");
+        return new Response(JSON.stringify({ error: "Missing payment ID" }), {
+          status: 400,
+        });
+      }
 
-      // update payments table
-      await supabase.from("payments").update({ status: "succeeded", provider_charge_id: data?.id || data?.reference }).eq("id", refPaymentId);
+      // Fetch payment record
+      const { data: paymentRow, error: paymentErr } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("id", paymentId)
+        .maybeSingle();
 
-      // increment wish raised_amount
-      if (paymentRow?.wish_id) {
-        // Try RPC increment_wish_amount if exists, otherwise update
+      if (paymentErr || !paymentRow) {
+        console.error("Payment not found:", paymentErr);
+        return new Response(JSON.stringify({ error: "Payment not found" }), {
+          status: 404,
+        });
+      }
+
+      // ✅ Mark payment succeeded
+      await supabase
+        .from("payments")
+        .update({
+          status: "succeeded",
+          provider_charge_id: data?.id || data?.reference,
+        })
+        .eq("id", paymentId);
+
+      // ✅ Update wish raised_amount
+      if (paymentRow.wish_id) {
         try {
-          await supabase.rpc("increment_wish_amount", { wish_uuid: paymentRow.wish_id, inc_amount: Number(paymentRow.amount) });
+          await supabase.rpc("increment_wish_amount", {
+            wish_uuid: paymentRow.wish_id,
+            inc_amount: Number(paymentRow.amount),
+          });
         } catch {
-          await supabase.from("wishes").update({ raised_amount: (paymentRow?.amount || 0) + (paymentRow?.raised_amount || 0) }).eq("id", paymentRow.wish_id);
+          // fallback if RPC doesn’t exist
+          const { data: wish } = await supabase
+            .from("wishes")
+            .select("raised_amount")
+            .eq("id", paymentRow.wish_id)
+            .single();
+          const newTotal =
+            (wish?.raised_amount || 0) + Number(paymentRow.amount);
+          await supabase
+            .from("wishes")
+            .update({ raised_amount: newTotal })
+            .eq("id", paymentRow.wish_id);
         }
       }
+
+      console.log(`✅ Payment ${paymentId} marked as succeeded`);
     }
 
     return new Response(JSON.stringify({ received: true }), { status: 200 });
   } catch (err) {
-    console.error("paystack webhook error:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    console.error("💥 Paystack Webhook Error:", err);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+    });
   }
 });
 
-// helper: convert hex string to Uint8Array
-function hexToUint8Array(hex) {
-  if (!hex) return new Uint8Array();
-  const arr = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) arr[i / 2] = parseInt(hex.substr(i, 2), 16);
-  return arr;
-}
-
-// helper: fallback parse function
-function extractPaymentIdFromReference(ref) {
-  // if you encode payment id in ref during initialization, parse it here
-  // e.g. ref like 'wish_{paymentId}_{ts}'
+// 🔧 Helper: Extract payment ID from tx_ref
+function extractPaymentIdFromReference(ref: string | undefined) {
   if (!ref) return null;
-  const m = ref.match(/wish_([0-9a-fA-F-]+)/);
-  return m ? m[1] : null;
+  const match = ref.match(/wish_([a-zA-Z0-9-]+)/);
+  return match ? match[1] : null;
 }
