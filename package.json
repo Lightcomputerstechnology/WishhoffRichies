@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "postinstall": "npx tailwindcss -i ./styles/tailwind-input.css -o ./styles/globals.css --minify"
+    "postinstall": "npx tailwindcss -i ./styles/tailwind-input.css -o ./styles/globals.css --minify",
+    "setup:supabase": "npm install -g supabase && supabase login && supabase link",
+    "deploy:supabase": "supabase functions deploy --project-ref YOUR_SUPABASE_PROJECT_REF"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.0",
