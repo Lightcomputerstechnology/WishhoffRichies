@@ -2,12 +2,12 @@
 import React from "react";
 
 const features = [
-  { title: "Simple", desc: "Post a wish in under 60 seconds." },
-  { title: "Trustworthy", desc: "Every request is verified before public listing." },
-  { title: "Secure", desc: "Payments handled safely through Stripe & Supabase." },
-  { title: "Transparent", desc: "Track donations and wish fulfillment easily." },
-  { title: "Community", desc: "Connect with generous donors and volunteers." },
-  { title: "Supportive", desc: "Get guidance for high-value or urgent wishes." },
+  { title: "Simple", desc: "Post your wish in under 60 seconds — quick and effortless." },
+  { title: "Trustworthy", desc: "Every request is verified before appearing publicly." },
+  { title: "Secure", desc: "Donations handled safely via Paystack, Flutterwave, or Crypto gateways — all powered by Supabase." },
+  { title: "Transparent", desc: "Track every donation and fulfillment with full visibility." },
+  { title: "Community", desc: "Connect with generous donors and supporters across the world." },
+  { title: "Supportive", desc: "Receive help, updates, and guidance for high-impact wishes." },
 ];
 
 export default function FeaturesSection() {
@@ -16,7 +16,7 @@ export default function FeaturesSection() {
       {features.map((feature, i) => (
         <div
           key={i}
-          className="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 transition transform hover:-translate-y-2 hover:shadow-2xl animate-fade-up"
+          className="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 transition transform hover:-translate-y-2 hover:shadow-2xl"
         >
           <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
             {feature.title}
