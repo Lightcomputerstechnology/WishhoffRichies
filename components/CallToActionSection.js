@@ -1,5 +1,7 @@
 // components/CallToActionSection.js
+"use client";
 import Link from "next/link";
+import DonateButton from "@/components/DonateButton"; // ✅ Unified global donate button
 
 export default function CallToActionSection() {
   return (
@@ -9,8 +11,9 @@ export default function CallToActionSection() {
           Ready to Make a Difference?
         </h2>
         <p className="text-lg mb-8 max-w-2xl mx-auto">
-          Post a wish or donate today. Every contribution helps bring dreams to life!
+          Post a wish or donate today — every contribution helps bring dreams to life!
         </p>
+
         <div className="flex justify-center gap-6 flex-wrap">
           <Link
             href="/wish/new"
@@ -18,12 +21,20 @@ export default function CallToActionSection() {
           >
             Make a Wish
           </Link>
+
           <Link
             href="/explore"
             className="border-2 border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary transition"
           >
             Browse Wishes
           </Link>
+
+          {/* ✅ Replaced all old "donate" buttons with global unified payment button */}
+          <DonateButton
+            amount={50} // Default example amount; can be customized dynamically
+            label="Donate Now"
+            className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-3 rounded-lg transition"
+          />
         </div>
       </div>
     </section>
