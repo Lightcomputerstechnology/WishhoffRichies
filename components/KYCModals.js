@@ -1,4 +1,4 @@
-// components/KYCModals.js
+// components/KYCModal.js
 import { useState, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 
