@@ -1,86 +1,98 @@
-import { createClient } from "@supabase/supabase-js";
-import sgMail from "@sendgrid/mail";
+import { useState } from "react";
+import { toast } from "react-hot-toast";
 
-// ✅ Initialize Supabase
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+export default function MakeAWish() {
+  const [form, setForm] = useState({
+    user_id: "",
+    title: "",
+    description: "",
+    category: "",
+    target_amount: "",
+    image_url: "",
+    payment_method: "",
+  });
 
-// ✅ Initialize SendGrid
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  try {
-    const { user_id, title, description, category, target_amount, image_url, payment_method } = req.body;
+    try {
+      const res = await fetch("/api/wishes/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
 
-    if (!user_id || !title || !target_amount) {
-      return res.status(400).json({ error: "Missing required fields." });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "Failed to create wish");
+
+      toast.success("Wish created successfully!");
+      setForm({
+        user_id: "",
+        title: "",
+        description: "",
+        category: "",
+        target_amount: "",
+        image_url: "",
+        payment_method: "",
+      });
+    } catch (err) {
+      toast.error(err.message);
+      console.error("Create wish error:", err);
     }
+  };
 
-    // ✅ Insert the wish into Supabase
-    const { data, error } = await supabase
-      .from("wishes")
-      .insert([
-        {
-          user_id,
-          title,
-          description,
-          category,
-          target_amount,
-          image_url,
-          payment_method,
-          status: "pending",
-          created_at: new Date().toISOString(),
-        },
-      ])
-      .select("*")
-      .single();
+  return (
+    <div className="max-w-2xl mx-auto mt-10 p-6 bg-gray-900 text-white rounded-lg shadow-md">
+      <h1 className="text-2xl font-bold mb-4">✨ Make a Wish</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          name="title"
+          placeholder="Wish title"
+          value={form.title}
+          onChange={handleChange}
+          className="w-full p-2 bg-gray-800 border border-gray-700 rounded"
+        />
+        <textarea
+          name="description"
+          placeholder="Description"
+          value={form.description}
+          onChange={handleChange}
+          className="w-full p-2 bg-gray-800 border border-gray-700 rounded"
+        />
+        <input
+          name="category"
+          placeholder="Category"
+          value={form.category}
+          onChange={handleChange}
+          className="w-full p-2 bg-gray-800 border border-gray-700 rounded"
+        />
+        <input
+          name="target_amount"
+          placeholder="Target amount"
+          value={form.target_amount}
+          onChange={handleChange}
+          className="w-full p-2 bg-gray-800 border border-gray-700 rounded"
+        />
+        <input
+          name="payment_method"
+          placeholder="Payment method"
+          value={form.payment_method}
+          onChange={handleChange}
+          className="w-full p-2 bg-gray-800 border border-gray-700 rounded"
+        />
 
-    if (error) throw error;
-
-    // ✅ Fetch user details to email them
-    const { data: userData } = await supabase
-      .from("profiles")
-      .select("email, full_name")
-      .eq("id", user_id)
-      .single();
-
-    if (userData?.email) {
-      // ✅ SendGrid Email
-      const msg = {
-        to: userData.email,
-        from: "noreply@wishhoffrichies.com",
-        subject: "🎉 Wish Created Successfully!",
-        html: `
-          <div style="font-family: Arial, sans-serif; color: #222;">
-            <h2>Hi ${userData.full_name || "there"},</h2>
-            <p>Your wish <strong>"${title}"</strong> has been successfully created!</p>
-            <p>Target amount: <strong>${target_amount}</strong></p>
-            <p>We’ll notify you once donations start coming in.</p>
-            <br/>
-            <p>💫 <strong>WishhoffRichies</strong></p>
-          </div>
-        `,
-      };
-
-      await sgMail.send(msg);
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Wish created successfully and confirmation email sent.",
-      data,
-    });
-  } catch (err) {
-    console.error("Error creating wish:", err.message);
-    return res.status(500).json({
-      error: "An error occurred while creating the wish.",
-      details: err.message,
-    });
-  }
+        <button
+          type="submit"
+          className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded font-semibold"
+        >
+          Submit Wish
+        </button>
+      </form>
+    </div>
+  );
 }
