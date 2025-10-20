@@ -1,10 +1,9 @@
- // pages/api/checkout/create-session.js
+// pages/api/checkout/create-session.js
 import stripe from "../../../lib/stripe";
 import { supabaseAdmin } from "../../../lib/supabaseClient";
 
 /**
- * This API route creates a Stripe Checkout session
- * for donations toward a specific wish.
+ * Creates a Stripe Checkout session for a specific wish donation.
  */
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -14,15 +13,15 @@ export default async function handler(req, res) {
 
   const { wishId, amount, currency = "USD", donorEmail } = req.body;
 
-  // Basic validation
   if (!wishId || !amount) {
-    return res.status(400).json({ error: "Missing required fields: wishId or amount" });
+    return res
+      .status(400)
+      .json({ error: "Missing required fields: wishId or amount" });
   }
 
   try {
-    // Optional: verify the wish actually exists in Supabase before creating a session
-    const supa = supabaseAdmin();
-    const { data: wish, error: wishError } = await supa
+    // Verify that the wish exists
+    const { data: wish, error: wishError } = await supabaseAdmin
       .from("wishes")
       .select("id, title")
       .eq("id", wishId)
@@ -32,13 +31,14 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "Wish not found" });
     }
 
-    // Fallback in case NEXT_PUBLIC_SITE_URL isn't set
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://wishhoffrichies.onrender.com";
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      "https://wishhoffrichies.onrender.com";
 
-    // Create Stripe Checkout session
+    // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
       mode: "payment",
+      payment_method_types: ["card"],
       customer_email: donorEmail || undefined,
       line_items: [
         {
@@ -55,9 +55,12 @@ export default async function handler(req, res) {
       cancel_url: `${siteUrl}/wish/${wishId}?status=cancel`,
     });
 
-    return res.status(200).json({ id: session.id, url: session.url });
+    return res.status(200).json({ checkout_url: session.url });
   } catch (err) {
     console.error("Stripe Checkout Error:", err);
-    return res.status(500).json({ error: "Failed to create checkout session", details: err.message });
+    return res.status(500).json({
+      error: "Failed to create checkout session",
+      details: err.message,
+    });
   }
 }
