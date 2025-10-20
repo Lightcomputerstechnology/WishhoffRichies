@@ -114,7 +114,7 @@ export default function MakeWish() {
 
       {/* KYC Modal */}
       {showKYC && (
-        <KYCModal
+        <KYCModals
           userId={formData.email} // or any unique user ID
           onUploaded={() => setShowKYC(false)}
           onClose={() => setShowKYC(false)}
