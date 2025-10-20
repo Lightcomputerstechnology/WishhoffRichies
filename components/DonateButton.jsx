@@ -15,7 +15,7 @@ export default function DonateButton({ wishId }) {
 
     setLoading(true);
     try {
-      const res = await fetch("https://<your-project-ref>.functions.supabase.co/init-payment", {
+      const res = await fetch("https://fmkcypifyocucrhcilsh.supabase.co/init-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
