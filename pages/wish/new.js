@@ -6,7 +6,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { useState } from "react";
 import { useRouter } from "next/router";
-import KYCModal from "../../components/KYCModals";
+import KYCModal from "../../components/KYCModal";
 
 export default function NewWish() {
   const [form, setForm] = useState({
@@ -147,7 +147,7 @@ export default function NewWish() {
       <Footer />
 
       {showKYC && (
-        <KYCModals
+        <KYCModal
           userId={form.name || form.title}
           onUploaded={() => setShowKYC(false)}
           onClose={() => setShowKYC(false)}
