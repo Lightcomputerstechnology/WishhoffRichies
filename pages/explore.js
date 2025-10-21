@@ -9,9 +9,6 @@ import Footer from "../components/Footer";
 import WishCard from "../components/WishCard";
 import { supabase } from "../lib/supabaseClient";
 
-// ✅ Exact 20 mocks for fallback
-const generateMockWishes = () => [ /* ... keep your 20 mocks unchanged ... */ ];
-
 export default function Explore() {
   const [wishes, setWishes] = useState([]);
   const [loading, setLoading] = useState(true);
