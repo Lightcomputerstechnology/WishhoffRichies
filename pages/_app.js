@@ -10,20 +10,35 @@ import { createPagesBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
 
 export default function MyApp({ Component, pageProps }) {
-  // ✅ Create Supabase client only on the client
   const [supabaseClient, setSupabaseClient] = useState(null);
 
+  // Initialize Supabase client on client-side only
   useEffect(() => {
     setSupabaseClient(createPagesBrowserClient());
+
+    // Initialize AOS after window exists
     AOS.init({
       duration: 1000,
       once: true,
       easing: 'ease-out-cubic',
     });
+
+    // Optional: log uncaught errors on the page for iPhone debugging
+    window.onerror = (msg, url, line, col, error) => {
+      document.body.innerHTML = `<pre style="color:red;">${msg}\n${error?.stack}</pre>`;
+    };
   }, []);
 
-  // Render nothing until client is ready
-  if (!supabaseClient) return null;
+  // Show loading until client is ready
+  if (!supabaseClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-slate-500 dark:text-slate-400 animate-pulse">
+          Loading application…
+        </p>
+      </div>
+    );
+  }
 
   return (
     <SessionContextProvider supabaseClient={supabaseClient} initialSession={pageProps.initialSession}>
