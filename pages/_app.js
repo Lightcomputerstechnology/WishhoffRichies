@@ -1,12 +1,11 @@
 // pages/_app.js
 import '../styles/globals.css';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import { Toaster } from 'react-hot-toast';
 import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs';
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
-import { useState } from 'react';
 
 export default function MyApp({ Component, pageProps }) {
   const [supabaseClient] = useState(() => createBrowserSupabaseClient());
@@ -20,10 +19,7 @@ export default function MyApp({ Component, pageProps }) {
   }, []);
 
   return (
-    <SessionContextProvider
-      supabaseClient={supabaseClient}
-      initialSession={pageProps.initialSession}
-    >
+    <SessionContextProvider supabaseClient={supabaseClient} initialSession={pageProps.initialSession}>
       <Component {...pageProps} />
       <Toaster
         position="top-center"
@@ -36,18 +32,8 @@ export default function MyApp({ Component, pageProps }) {
             padding: '10px 16px',
             fontSize: '14px',
           },
-          success: {
-            iconTheme: {
-              primary: '#4ADE80',
-              secondary: '#1E293B',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#F87171',
-              secondary: '#1E293B',
-            },
-          },
+          success: { iconTheme: { primary: '#4ADE80', secondary: '#1E293B' } },
+          error: { iconTheme: { primary: '#F87171', secondary: '#1E293B' } },
         }}
       />
     </SessionContextProvider>
