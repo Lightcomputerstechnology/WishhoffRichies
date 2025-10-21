@@ -5,7 +5,7 @@ import Head from "next/head";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { supabase } from "../../lib/supabaseClient";
-import { generateMockWishes } from "../lib/mockWishes";
+import { generateMockWishes } from "../../lib/mockWishes";
 
 export default function DonatePage() {
   const router = useRouter();
