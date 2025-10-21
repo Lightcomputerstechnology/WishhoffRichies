@@ -1,4 +1,3 @@
-// pages/api/payments/[method].js
 import { supabaseAdmin } from "../../../lib/supabaseClient";
 
 export default async function handler(req, res) {
@@ -15,7 +14,7 @@ export default async function handler(req, res) {
   try {
     const supabase = supabaseAdmin();
 
-    // 1️⃣ Get admin percentage (fallback: 10%)
+    // 1️⃣ Get admin percentage (fallback to 10%)
     const { data: setting } = await supabase
       .from("settings")
       .select("value")
@@ -23,10 +22,10 @@ export default async function handler(req, res) {
       .single();
 
     const adminPercent = parseFloat(setting?.value || "10");
-    const adminCut = (amount * adminPercent) / 100;
-    const wishCut = amount - adminCut;
+    const adminCut = parseFloat(((amount * adminPercent) / 100).toFixed(2));
+    const wishCut = parseFloat((amount - adminCut).toFixed(2));
 
-    // 2️⃣ Insert pending payment record
+    // 2️⃣ Insert payment record
     const { data: payment, error: insertError } = await supabase
       .from("payments")
       .insert([
@@ -52,7 +51,7 @@ export default async function handler(req, res) {
 
     let paymentUrl = null;
 
-    // ✅ PAYSTACK
+    // ✅ PAYSTACK (Card)
     if (method === "paystack") {
       const init = await fetch("https://api.paystack.co/transaction/initialize", {
         method: "POST",
@@ -62,26 +61,32 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           email: donor_email,
-          amount: Math.round(amount * 100),
+          amount: Math.round(Number(amount) * 100), // Convert to kobo
           callback_url: `${baseUrl}/wish/${wishId}?status=success`,
           metadata: { payment_id: payment.id, wish_id: wishId },
         }),
       });
 
       const payData = await init.json();
-      paymentUrl = payData?.data?.authorization_url || null;
+      if (!init.ok || !payData?.data?.authorization_url) {
+        throw new Error(payData?.message || "Paystack init failed");
+      }
+
+      paymentUrl = payData.data.authorization_url;
     }
 
-    // ✅ FLUTTERWAVE
+    // ✅ FLUTTERWAVE (Bank / Card / Mobile Money)
     else if (method === "flutterwave") {
-      const init = await fetch("https://api.flutterwave.com/v3/payments", {
+      const tx_ref = `wish_${payment.id}_${Date.now()}`;
+
+      const init = await fetch("https://api.flutterwave.com/v4/payments", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          tx_ref: `wish_${payment.id}_${Date.now()}`,
+          tx_ref,
           amount,
           currency: "USD",
           redirect_url: `${baseUrl}/wish/${wishId}?status=success`,
@@ -91,7 +96,11 @@ export default async function handler(req, res) {
       });
 
       const flwData = await init.json();
-      paymentUrl = flwData?.data?.link || null;
+      if (!init.ok || !flwData?.data?.link) {
+        throw new Error(flwData?.message || "Flutterwave init failed");
+      }
+
+      paymentUrl = flwData.data.link;
     }
 
     // ✅ NOWPAYMENTS (Crypto)
@@ -105,7 +114,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           price_amount: amount,
           price_currency: "usd",
-          pay_currency: "usdt", // Can be changed dynamically
+          pay_currency: "usdt",
           order_id: payment.id,
           order_description: `Donation for wish ${wishId}`,
           success_url: `${baseUrl}/wish/${wishId}?status=success`,
@@ -114,7 +123,11 @@ export default async function handler(req, res) {
       });
 
       const nowData = await init.json();
-      paymentUrl = nowData?.invoice_url || null;
+      if (!init.ok || !nowData?.invoice_url) {
+        throw new Error(nowData?.message || "NowPayments init failed");
+      }
+
+      paymentUrl = nowData.invoice_url;
     }
 
     if (!paymentUrl) {
