@@ -2,10 +2,6 @@
 import axios from "axios";
 import { supabaseAdmin } from "../../../lib/supabaseClient";
 
-/**
- * Creates a live payment session for a specific wish donation.
- * Supports Paystack, Flutterwave, and NowPay (crypto).
- */
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
@@ -17,7 +13,8 @@ export default async function handler(req, res) {
     amount,
     currency = "NGN",
     donorEmail,
-    paymentMethod = "paystack", // "paystack" | "flutterwave" | "nowpay"
+    paymentMethod = "paystack",
+    donorType = "user", // 👈 "user" | "guest"
   } = req.body;
 
   if (!wishId || !amount) {
@@ -42,11 +39,10 @@ export default async function handler(req, res) {
       process.env.NEXT_PUBLIC_SITE_URL || "https://wishhoffrichies.onrender.com";
 
     let paymentUrl = "";
-    let reference = `WISH-${wishId}-${Date.now()}`;
+    const reference = `WISH-${wishId}-${Date.now()}`;
 
-    // ✅ 2. Choose live payment gateway dynamically
+    // ✅ 2. Payment Gateway selection
     if (paymentMethod === "paystack") {
-      // Paystack
       const response = await axios.post(
         "https://api.paystack.co/transaction/initialize",
         {
@@ -55,10 +51,7 @@ export default async function handler(req, res) {
           currency,
           reference,
           callback_url: `${siteUrl}/wish/${wishId}?status=success`,
-          metadata: {
-            wish_id: wishId,
-            source: "wish_donation",
-          },
+          metadata: { wish_id: wishId, donor_type: donorType },
         },
         {
           headers: {
@@ -69,7 +62,6 @@ export default async function handler(req, res) {
       );
       paymentUrl = response.data.data.authorization_url;
     } else if (paymentMethod === "flutterwave") {
-      // Flutterwave
       const response = await axios.post(
         "https://api.flutterwave.com/v3/payments",
         {
@@ -77,10 +69,8 @@ export default async function handler(req, res) {
           amount,
           currency,
           redirect_url: `${siteUrl}/wish/${wishId}?status=success`,
-          customer: {
-            email: donorEmail || "anonymous@wishhoff.com",
-          },
-          meta: { wish_id: wishId },
+          customer: { email: donorEmail || "anonymous@wishhoff.com" },
+          meta: { wish_id: wishId, donor_type: donorType },
         },
         {
           headers: {
@@ -91,13 +81,12 @@ export default async function handler(req, res) {
       );
       paymentUrl = response.data.data.link;
     } else if (paymentMethod === "nowpay") {
-      // NowPay (Crypto)
       const response = await axios.post(
         "https://api.nowpayments.io/v1/invoice",
         {
           price_amount: amount,
           price_currency: currency,
-          pay_currency: "USDT", // or BTC, depending on frontend choice
+          pay_currency: "USDT",
           order_id: reference,
           order_description: `Donation to "${wish.title}"`,
           success_url: `${siteUrl}/wish/${wishId}?status=success`,
@@ -115,7 +104,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Invalid payment method" });
     }
 
-    // ✅ 3. Log pending transaction in Supabase
+    // ✅ 3. Log payment
     await supabaseAdmin()
       .from("payments")
       .insert([
@@ -127,14 +116,11 @@ export default async function handler(req, res) {
           currency,
           status: "pending",
           reference,
+          donor_type: donorType, // 👈 add this column
         },
       ]);
 
-    // ✅ 4. Return payment URL to frontend
-    return res.status(200).json({
-      checkout_url: paymentUrl,
-      reference,
-    });
+    return res.status(200).json({ checkout_url: paymentUrl, reference });
   } catch (err) {
     console.error("Payment Session Error:", err.response?.data || err.message);
     return res.status(500).json({
