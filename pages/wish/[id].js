@@ -1,4 +1,3 @@
-// pages/wish/[id].js
 "use client";
 import Link from "next/link";
 import Head from "next/head";
@@ -6,6 +5,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import { supabase } from "../../lib/supabaseClient";
 
 export default function WishPage() {
   const router = useRouter();
@@ -19,42 +19,65 @@ export default function WishPage() {
     if (!id) return;
     let mounted = true;
 
-    async function load() {
+    async function loadWish() {
       try {
-        const res = await fetch(`/api/wishes/list`);
-        const data = await res.json();
-        if (!mounted) return;
-        const found = data.find((x) => String(x.id) === String(id));
-        setWish(found || null);
+        const { data, error } = await supabase
+          .from("wishes")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (error) throw error;
+        if (mounted) setWish(data);
       } catch (err) {
-        console.error(err);
+        console.error("Error loading wish:", err);
+        if (mounted) setWish(null);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     }
 
-    load();
-    return () => (mounted = false);
+    loadWish();
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   async function startDonate(amount) {
-    if (!donorEmail) return alert("Please enter your email");
+    if (!donorEmail) return alert("Please enter your email before donating.");
     setDonating(true);
+
     try {
-      const res = await fetch("/api/checkout/create-session", {
+      const res = await fetch("/api/payment/init-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wishId: id, amount, donorEmail }),
+        body: JSON.stringify({
+          wishId: id,
+          donorEmail,
+          amount,
+        }),
       });
+
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else throw new Error(data.error || "Unable to create checkout");
+      if (!res.ok) throw new Error(data.error || "Unable to initialize payment.");
+
+      // Redirect to hosted payment page
+      if (data?.checkout_url) {
+        window.location.href = data.checkout_url;
+      } else {
+        throw new Error("No payment URL returned from server.");
+      }
     } catch (err) {
-      alert(err.message);
+      console.error(err);
+      alert(err.message || "Payment failed. Try again.");
     } finally {
       setDonating(false);
     }
   }
+
+  const handleGuestDonate = () => {
+    router.push(`/choose-donation-flow?id=${id}`);
+  };
 
   return (
     <>
@@ -65,39 +88,51 @@ export default function WishPage() {
 
       <main className="min-h-screen bg-slate-50 dark:bg-slate-900 py-10 px-4">
         {loading ? (
-          <p className="text-center text-lg">Loading…</p>
+          <p className="text-center text-lg text-slate-700 dark:text-slate-200">
+            Loading wish details…
+          </p>
         ) : !wish ? (
-          <p className="text-center text-lg text-red-600 dark:text-red-400">Wish not found.</p>
+          <p className="text-center text-lg text-red-600 dark:text-red-400">
+            Wish not found.
+          </p>
         ) : (
           <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-8">
-            {/* Wish details */}
+            {/* Wish Details */}
             <section className="flex-1 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md">
               <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
                 {wish.title}
               </h1>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                Requested by: {wish.name || "Anonymous"}
+                Requested by: {wish.name || "Anonymous"} • Location:{" "}
+                {wish.location || "Unknown"}
               </p>
-              <p className="text-slate-700 dark:text-slate-200 mb-4">{wish.description}</p>
+              <p className="text-slate-700 dark:text-slate-200 mb-4 leading-relaxed">
+                {wish.description}
+              </p>
 
               <div className="bg-slate-100 dark:bg-slate-700 rounded-full h-4 overflow-hidden mb-4">
                 <div
                   className="bg-primary h-4 rounded-full transition-all duration-300"
                   style={{
-                    width: `${Math.min((wish.raised_amount / wish.amount) * 100 || 0, 100)}%`,
+                    width: `${Math.min(
+                      (wish.raised_amount / wish.amount) * 100 || 0,
+                      100
+                    )}%`,
                   }}
                 ></div>
               </div>
+
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 ${wish.raised_amount || 0} raised of ${wish.amount}
               </p>
             </section>
 
-            {/* Donation card */}
+            {/* Donation Card */}
             <aside className="w-full md:w-80 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md">
               <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
                 Support this wish
               </h3>
+
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Your Email
               </label>
@@ -123,6 +158,18 @@ export default function WishPage() {
                     {donating ? "Processing…" : `$${a}`}
                   </button>
                 ))}
+              </div>
+
+              <div className="text-center mt-4">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+                  Or choose your flow:
+                </p>
+                <button
+                  onClick={handleGuestDonate}
+                  className="text-primary hover:underline text-sm font-medium"
+                >
+                  💫 Donate as Guest / Login to Donate
+                </button>
               </div>
             </aside>
           </div>
