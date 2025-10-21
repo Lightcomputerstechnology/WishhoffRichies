@@ -1,16 +1,14 @@
-// components/DonateButton.jsx
 "use client";
 import { useState } from "react";
 import CurrencySelector from "./CurrencySelector";
 
 /**
- * DonateButton: collects donor name/email, amount + currency,
- * converts to USD and calls Supabase function to init payment.
- *
- * IMPORTANT: Replace INIT_PAYMENT_URL if your function path is different.
+ * DonateButton:
+ * - Opens modal for user to enter donation details.
+ * - Supports Paystack, Flutterwave, and NowPayments (crypto).
+ * - Calls your Next.js API routes dynamically based on payment method.
  */
 export default function DonateButton({ wishId, wishTitle, amountTarget }) {
-  const INIT_PAYMENT_URL = "https://fmkcypifyocucrhcilsh.supabase.co/functions/v1/init-payment";
   const [open, setOpen] = useState(false);
   const [donorName, setDonorName] = useState("");
   const [donorEmail, setDonorEmail] = useState("");
@@ -20,27 +18,45 @@ export default function DonateButton({ wishId, wishTitle, amountTarget }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Convert amount to USD using exchangerate.host (free) with a fallback
+  // Helper: map UI method to backend API path + method name
+  function getPaymentEndpoint(method) {
+    if (method === "card") return "/api/payments/paystack";
+    if (method === "bank") return "/api/payments/flutterwave";
+    if (method === "crypto") return "/api/payments/nowpayments";
+    return "/api/payments/paystack";
+  }
+
+  function mapMethodName(method) {
+    if (method === "card") return "paystack";
+    if (method === "bank") return "flutterwave";
+    if (method === "crypto") return "nowpayments";
+    return "paystack";
+  }
+
+  // Convert amount to USD (via exchangerate.host)
   async function convertToUSD(value, fromCurrency) {
     if (!value) return null;
     if (String(fromCurrency).toUpperCase() === "USD") return Number(value);
     try {
-      const res = await fetch(`https://api.exchangerate.host/convert?from=${fromCurrency}&to=USD&amount=${value}`);
+      const res = await fetch(
+        `https://api.exchangerate.host/convert?from=${fromCurrency}&to=USD&amount=${value}`
+      );
       const json = await res.json();
       if (json?.result) return Number(json.result);
     } catch (err) {
-      console.warn("convert fail:", err);
+      console.warn("Currency conversion failed:", err);
     }
-    // fallback rates (approx) — safe default if API unavailable
+    // Fallback static rates
     const fallback = { NGN: 0.0024, EUR: 1.08, GBP: 1.25, USD: 1 };
     const rate = fallback[fromCurrency?.toUpperCase()] || 1;
     return Number(value) * rate;
   }
 
+  // Initialize payment
   async function handleInit() {
     setError("");
     if (!donorName || !donorEmail || !amount) {
-      setError("Fill all fields.");
+      setError("Please fill all fields.");
       return;
     }
     const numeric = Number(amount);
@@ -54,16 +70,16 @@ export default function DonateButton({ wishId, wishTitle, amountTarget }) {
       const amountUsd = await convertToUSD(numeric, currency);
       if (!amountUsd) throw new Error("Conversion failed");
 
-      // payload expected by your init-payment function
       const payload = {
         wishId,
         donor_name: donorName,
         donor_email: donorEmail,
-        amount: Number((amountUsd).toFixed(2)), // send USD amount to server
-        method: method === "card" ? "card" : method === "bank" ? "bank" : "crypto",
+        amount: Number(amountUsd.toFixed(2)),
+        method: mapMethodName(method),
       };
 
-      const res = await fetch(INIT_PAYMENT_URL, {
+      const endpoint = getPaymentEndpoint(method);
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -72,20 +88,25 @@ export default function DonateButton({ wishId, wishTitle, amountTarget }) {
       const body = await res.json();
       if (!res.ok) {
         console.error("init-payment failed", body);
-        throw new Error(body.error || "Payment init failed");
+        throw new Error(body.error || "Payment initialization failed");
       }
 
-      // server responds with redirect (redirect property) or payment url
-      const redirectUrl = body.redirect || body.url || body.paymentUrl || (body.data && body.data.url);
+      // Redirect to payment gateway
+      const redirectUrl =
+        body.redirect_url ||
+        body.redirect ||
+        body.url ||
+        body.paymentUrl ||
+        body.data?.url;
+
       if (!redirectUrl) {
-        // no redirect: maybe provider not used; open a success message
-        alert("Payment initialized. Check your email for next steps.");
+        alert("Payment initialized. Check your email for details.");
         setOpen(false);
       } else {
         window.location.href = redirectUrl;
       }
     } catch (err) {
-      console.error("Donate init error:", err);
+      console.error("Donation init error:", err);
       setError(err.message || "Failed to initialize payment");
     } finally {
       setLoading(false);
@@ -103,11 +124,18 @@ export default function DonateButton({ wishId, wishTitle, amountTarget }) {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)}></div>
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setOpen(false)}
+          ></div>
 
           <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6 z-60">
-            <h3 className="text-lg font-bold mb-2">Donate to: {wishTitle}</h3>
-            <p className="text-sm text-slate-500 mb-3">Target: ${amountTarget}</p>
+            <h3 className="text-lg font-bold mb-2">
+              Donate to: {wishTitle || "Wish"}
+            </h3>
+            <p className="text-sm text-slate-500 mb-3">
+              Target: ${amountTarget || "N/A"}
+            </p>
 
             <input
               placeholder="Your name"
@@ -135,20 +163,35 @@ export default function DonateButton({ wishId, wishTitle, amountTarget }) {
             </div>
 
             <div className="flex gap-2 mb-3">
-              <select value={method} onChange={(e) => setMethod(e.target.value)} className="flex-1 p-2 border rounded bg-transparent">
+              <select
+                value={method}
+                onChange={(e) => setMethod(e.target.value)}
+                className="flex-1 p-2 border rounded bg-transparent"
+              >
                 <option value="card">Debit / Credit Card (Paystack)</option>
                 <option value="bank">Bank / Transfer (Flutterwave)</option>
                 <option value="crypto">Crypto (NowPayments)</option>
               </select>
             </div>
 
-            {error && <div className="text-sm text-red-500 mb-2">{error}</div>}
+            {error && (
+              <div className="text-sm text-red-500 mb-2">{error}</div>
+            )}
 
             <div className="flex gap-2">
-              <button onClick={handleInit} disabled={loading} className="flex-1 py-2 rounded bg-primary text-white">
+              <button
+                onClick={handleInit}
+                disabled={loading}
+                className="flex-1 py-2 rounded bg-primary text-white"
+              >
                 {loading ? "Processing..." : "Continue to Payment"}
               </button>
-              <button onClick={() => setOpen(false)} className="flex-1 py-2 rounded border">Cancel</button>
+              <button
+                onClick={() => setOpen(false)}
+                className="flex-1 py-2 rounded border"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
