@@ -14,15 +14,24 @@ export default function DonatePage() {
   const [wish, setWish] = useState(null);
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("stripe");
+  const [paymentMethod, setPaymentMethod] = useState("flutterwave");
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [isGuest, setIsGuest] = useState(true);
 
-  // Load wish details
+  // Load wish details if available
   useEffect(() => {
-    if (!wishId) return;
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsGuest(!user);
+    };
+    checkUser();
+
     const fetchWish = async () => {
+      if (!wishId) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       const { data, error } = await supabase
         .from("wishes")
@@ -46,19 +55,34 @@ export default function DonatePage() {
     setProcessing(true);
 
     try {
-      // Call Supabase Edge Function: init-payment
-      const { data, error } = await supabase.functions.invoke("init-payment", {
+      // Pick correct Supabase Edge Function
+      let fnName;
+      switch (paymentMethod) {
+        case "flutterwave":
+          fnName = "init-flutterwave-payment";
+          break;
+        case "paystack":
+          fnName = "init-paystack-payment";
+          break;
+        case "nowpayments":
+          fnName = "init-nowpayment";
+          break;
+        default:
+          throw new Error("Unsupported payment method");
+      }
+
+      const { data, error } = await supabase.functions.invoke(fnName, {
         body: {
           amount,
-          method: paymentMethod,
-          wishId,
+          wishId: wish?.id || null,
+          userMode: isGuest ? "guest" : "registered",
         },
       });
 
       if (error) throw error;
       if (!data?.checkout_url) throw new Error("Invalid payment response.");
 
-      // Redirect to payment gateway
+      // Redirect to payment page
       window.location.href = data.checkout_url;
     } catch (err) {
       console.error("Donation error:", err);
@@ -72,25 +96,15 @@ export default function DonatePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-slate-500 dark:text-slate-400 animate-pulse">
-          Loading wish…
+          Loading donation details…
         </p>
-      </div>
-    );
-
-  if (!wish)
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center">
-        <p className="text-red-500 mb-4">Wish not found.</p>
-        <Link href="/explore" className="text-primary hover:underline">
-          Back to Explore
-        </Link>
       </div>
     );
 
   return (
     <>
       <Head>
-        <title>Donate — {wish.title}</title>
+        <title>Donate | LightTech</title>
       </Head>
 
       <Navbar />
@@ -98,21 +112,28 @@ export default function DonatePage() {
       <main className="container mx-auto px-6 py-16 min-h-screen flex flex-col items-center">
         <section className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg w-full max-w-xl flex flex-col gap-6">
           <h1 className="text-3xl md:text-4xl font-extrabold text-primary text-center">
-            Donate to Make a Wish 💖
+            Make a Donation 💖
           </h1>
 
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
-              {wish.title}
-            </h2>
-            <p className="text-slate-600 dark:text-slate-300">
-              Requested by: <strong>{wish.name}</strong>
+          {wish ? (
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
+                {wish.title}
+              </h2>
+              <p className="text-slate-600 dark:text-slate-300">
+                Requested by: <strong>{wish.name}</strong>
+              </p>
+              <p className="text-slate-500 dark:text-slate-400">
+                Goal: <strong>${wish.amount}</strong>
+              </p>
+            </div>
+          ) : (
+            <p className="text-center text-slate-500">
+              Guest donation — supporting community projects ❤️
             </p>
-            <p className="text-slate-500 dark:text-slate-400">
-              Goal: <strong>${wish.amount}</strong>
-            </p>
-          </div>
+          )}
 
+          {/* Donation form */}
           <div className="flex flex-col gap-2">
             <label className="font-medium text-slate-700 dark:text-slate-200">
               Donation Amount ($)
@@ -121,7 +142,7 @@ export default function DonatePage() {
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder={`e.g. ${wish.amount}`}
+              placeholder="Enter amount"
               className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary transition"
             />
           </div>
@@ -135,18 +156,13 @@ export default function DonatePage() {
               onChange={(e) => setPaymentMethod(e.target.value)}
               className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary transition"
             >
-              <option value="stripe">Stripe (International)</option>
               <option value="flutterwave">Flutterwave (Nigeria)</option>
               <option value="paystack">Paystack (Nigeria)</option>
+              <option value="nowpayments">NowPayments (Crypto)</option>
             </select>
           </div>
 
           {error && <p className="text-red-500 text-center">{error}</p>}
-          {success && (
-            <p className="text-green-500 text-center font-medium">
-              Donation successful! Redirecting…
-            </p>
-          )}
 
           <button
             onClick={handleDonate}
@@ -159,6 +175,12 @@ export default function DonatePage() {
           >
             {processing ? "Processing..." : "Donate Now"}
           </button>
+
+          <p className="text-xs text-center text-slate-400 mt-3">
+            {isGuest
+              ? "You're donating as a guest. You can sign up later to track your impact."
+              : "Thank you for being part of our giving community!"}
+          </p>
         </section>
       </main>
 
