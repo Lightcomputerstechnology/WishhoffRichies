@@ -11,10 +11,30 @@ export default function AuthPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (user) {
-      router.push('/create-wish'); // redirect after login
-    }
-  }, [user, router]);
+    const checkUserWishes = async () => {
+      if (!user) return;
+
+      // Check if user already has wishes in your "wishes" table
+      const { data, error } = await supabase
+        .from('wishes')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (error) {
+        console.error('Error checking wishes:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        router.push('/dashboard'); // user already has a wish
+      } else {
+        router.push('/create-wish'); // new user → go make a wish
+      }
+    };
+
+    checkUserWishes();
+  }, [user, supabase, router]);
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900">
