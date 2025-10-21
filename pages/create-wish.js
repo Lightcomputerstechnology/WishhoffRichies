@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -21,6 +21,20 @@ export default function CreateWish() {
   const [message, setMessage] = useState("");
   const [showKYC, setShowKYC] = useState(false);
   const [createdWishId, setCreatedWishId] = useState(null);
+  const [user, setUser] = useState(null);
+
+  // ✅ Check authentication when page loads
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data.user) {
+        router.replace(`/login?next=/create-wish`);
+      } else {
+        setUser(data.user);
+      }
+    };
+    checkUser();
+  }, [router]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,8 +47,6 @@ export default function CreateWish() {
     setLoading(true);
 
     const { name, title, description, amount, location } = formData;
-
-    // Validate required fields
     if (!name || !title || !description || !amount || !location) {
       setMessage("⚠️ Please fill in all required fields.");
       setLoading(false);
@@ -42,10 +54,19 @@ export default function CreateWish() {
     }
 
     try {
-      // Save wish to Supabase
+      // ✅ Ensure user is still authenticated
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        router.replace(`/login?next=/create-wish`);
+        return;
+      }
+
+      const userId = sessionData.session.user.id;
+
+      // ✅ Save wish to Supabase with user reference
       const { data, error } = await supabase
         .from("wishes")
-        .insert([{ ...formData }])
+        .insert([{ ...formData, user_id: userId }])
         .select("id")
         .single();
 
@@ -53,9 +74,8 @@ export default function CreateWish() {
 
       setCreatedWishId(data.id);
       setMessage("🎉 Wish created successfully!");
-      setShowKYC(true); // show KYC modal
+      setShowKYC(true);
 
-      // Reset form
       setFormData({
         name: "",
         title: "",
@@ -73,7 +93,6 @@ export default function CreateWish() {
 
   const handleKYCComplete = () => {
     setShowKYC(false);
-    // Optionally redirect to wish detail page
     if (createdWishId) router.push(`/wish/${createdWishId}`);
   };
 
@@ -146,10 +165,9 @@ export default function CreateWish() {
         </div>
       </main>
 
-      {/* ✅ KYC Modal Triggered After Successful Wish Creation */}
       {showKYC && (
         <KYCModal
-          userId={createdWishId || formData.name || "unknown"}
+          userId={user?.id || createdWishId}
           onUploaded={handleKYCComplete}
           onClose={() => setShowKYC(false)}
         />
