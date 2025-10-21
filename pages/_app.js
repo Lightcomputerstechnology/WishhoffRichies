@@ -1,4 +1,6 @@
 // pages/_app.js
+"use client";
+
 import '../styles/globals.css';
 import { useEffect, useState } from 'react';
 import AOS from 'aos';
@@ -8,15 +10,20 @@ import { createPagesBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
 
 export default function MyApp({ Component, pageProps }) {
-  const [supabaseClient] = useState(() => createBrowserSupabaseClient());
+  // ✅ Create Supabase client only on the client
+  const [supabaseClient, setSupabaseClient] = useState(null);
 
   useEffect(() => {
+    setSupabaseClient(createPagesBrowserClient());
     AOS.init({
       duration: 1000,
       once: true,
       easing: 'ease-out-cubic',
     });
   }, []);
+
+  // Render nothing until client is ready
+  if (!supabaseClient) return null;
 
   return (
     <SessionContextProvider supabaseClient={supabaseClient} initialSession={pageProps.initialSession}>
