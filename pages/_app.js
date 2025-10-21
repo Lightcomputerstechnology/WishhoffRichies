@@ -4,18 +4,26 @@ import { useEffect } from 'react';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import { Toaster } from 'react-hot-toast';
+import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs';
+import { SessionContextProvider } from '@supabase/auth-helpers-react';
+import { useState } from 'react';
 
 export default function MyApp({ Component, pageProps }) {
+  const [supabaseClient] = useState(() => createBrowserSupabaseClient());
+
   useEffect(() => {
     AOS.init({
-      duration: 1000, // Animation duration
-      once: true,     // Only animate once
+      duration: 1000,
+      once: true,
       easing: 'ease-out-cubic',
     });
   }, []);
 
   return (
-    <>
+    <SessionContextProvider
+      supabaseClient={supabaseClient}
+      initialSession={pageProps.initialSession}
+    >
       <Component {...pageProps} />
       <Toaster
         position="top-center"
@@ -42,6 +50,6 @@ export default function MyApp({ Component, pageProps }) {
           },
         }}
       />
-    </>
+    </SessionContextProvider>
   );
 }
