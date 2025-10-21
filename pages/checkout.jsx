@@ -1,3 +1,4 @@
+// pages/checkout.jsx
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
@@ -7,15 +8,20 @@ import Footer from "../components/Footer";
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const { guest } = router.query;
   const [checkoutData, setCheckoutData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const stored = localStorage.getItem("checkoutData");
-    if (stored) setCheckoutData(JSON.parse(stored));
-    else router.push("/explore"); // If no data, go back
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      setCheckoutData({ ...parsed, donorType: guest ? "guest" : "user" });
+    } else {
+      router.push("/explore");
+    }
     setLoading(false);
-  }, []);
+  }, [guest]);
 
   const handleConfirm = () => {
     if (!checkoutData?.checkout_url) return;
@@ -41,7 +47,7 @@ export default function CheckoutPage() {
   return (
     <>
       <Head>
-        <title>Checkout | LightTech</title>
+        <title>Checkout | WishhoffRichies</title>
       </Head>
       <Navbar />
       <main className="container mx-auto px-6 py-16 min-h-screen flex flex-col items-center">
@@ -57,6 +63,12 @@ export default function CheckoutPage() {
           {checkoutData.wishTitle && (
             <p className="text-slate-500 dark:text-slate-400">
               For: <strong>{checkoutData.wishTitle}</strong>
+            </p>
+          )}
+
+          {guest && (
+            <p className="text-xs text-yellow-600 dark:text-yellow-400">
+              ⚠️ You're donating as a guest. You won’t be able to track this donation later.
             </p>
           )}
 
