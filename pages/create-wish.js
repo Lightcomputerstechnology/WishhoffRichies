@@ -2,10 +2,13 @@
 import { useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import KYCModal from "../components/KYCModal";
 import { supabase } from "../lib/supabaseClient";
 
 export default function CreateWish() {
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     name: "",
     title: "",
@@ -13,9 +16,11 @@ export default function CreateWish() {
     amount: "",
     location: "",
   });
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [showKYC, setShowKYC] = useState(false);
+  const [createdWishId, setCreatedWishId] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,29 +29,52 @@ export default function CreateWish() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setMessage("");
+    setLoading(true);
 
-    // Validate all fields
-    if (!formData.name || !formData.title || !formData.description || !formData.amount || !formData.location) {
-      setMessage("Please fill in all required fields.");
+    const { name, title, description, amount, location } = formData;
+
+    // Validate required fields
+    if (!name || !title || !description || !amount || !location) {
+      setMessage("⚠️ Please fill in all required fields.");
       setLoading(false);
       return;
     }
 
     try {
-      const { error } = await supabase.from("wishes").insert([formData]);
+      // Save wish to Supabase
+      const { data, error } = await supabase
+        .from("wishes")
+        .insert([{ ...formData }])
+        .select("id")
+        .single();
+
       if (error) throw error;
 
+      setCreatedWishId(data.id);
       setMessage("🎉 Wish created successfully!");
-      setFormData({ name: "", title: "", description: "", amount: "", location: "" });
-      setShowKYC(true); // trigger KYC modal
+      setShowKYC(true); // show KYC modal
+
+      // Reset form
+      setFormData({
+        name: "",
+        title: "",
+        description: "",
+        amount: "",
+        location: "",
+      });
     } catch (err) {
-      console.error(err);
-      setMessage("❌ Error creating wish. Check console for details.");
+      console.error("Error creating wish:", err);
+      setMessage("❌ Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleKYCComplete = () => {
+    setShowKYC(false);
+    // Optionally redirect to wish detail page
+    if (createdWishId) router.push(`/wish/${createdWishId}`);
   };
 
   return (
@@ -71,7 +99,11 @@ export default function CreateWish() {
                   key={field}
                   type={field === "amount" ? "number" : "text"}
                   name={field}
-                  placeholder={field === "amount" ? "Target Amount (USD)" : `Your ${field.charAt(0).toUpperCase() + field.slice(1)}`}
+                  placeholder={
+                    field === "amount"
+                      ? "Target Amount (USD)"
+                      : `Your ${field.charAt(0).toUpperCase() + field.slice(1)}`
+                  }
                   value={formData[field]}
                   onChange={handleChange}
                   required
@@ -114,11 +146,11 @@ export default function CreateWish() {
         </div>
       </main>
 
-      {/* KYC Modal */}
+      {/* ✅ KYC Modal Triggered After Successful Wish Creation */}
       {showKYC && (
         <KYCModal
-          userId={formData.name || formData.title} // fallback unique ID
-          onUploaded={() => setShowKYC(false)}
+          userId={createdWishId || formData.name || "unknown"}
+          onUploaded={handleKYCComplete}
           onClose={() => setShowKYC(false)}
         />
       )}
