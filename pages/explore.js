@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Head from "next/head";
 import { useEffect, useState } from "react";
+import { generateMockWishes } from "../lib/mockWishes";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import WishCard from "../components/WishCard";
