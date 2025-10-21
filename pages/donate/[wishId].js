@@ -2,14 +2,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import Link from "next/link";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { supabase } from "../../lib/supabaseClient";
+import { generateMockWishes } from "../explore"; // 👈 reuse the mock generator
 
 export default function DonatePage() {
   const router = useRouter();
-  const { wishId } = router.query;
+  const { id, mock } = router.query;
 
   const [wish, setWish] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -19,33 +19,37 @@ export default function DonatePage() {
   const [error, setError] = useState("");
   const [isGuest, setIsGuest] = useState(true);
 
-  // Load wish details if available
   useEffect(() => {
-    const checkUser = async () => {
+    const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setIsGuest(!user);
-    };
-    checkUser();
 
-    const fetchWish = async () => {
-      if (!wishId) {
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
+      if (!id) return setLoading(false);
+
+      // Try loading from Supabase
       const { data, error } = await supabase
         .from("wishes")
         .select("*")
-        .eq("id", wishId)
+        .eq("id", id)
         .single();
-      if (error) console.error("Error fetching wish:", error);
-      else setWish(data);
+
+      if (!data || error) {
+        // Fallback to mock if marked or missing
+        const mockWish = generateMockWishes().find((w) => w.id === id);
+        if (mockWish) {
+          mockWish.isMock = true;
+          setWish(mockWish);
+        }
+      } else {
+        setWish(data);
+      }
+
       setLoading(false);
     };
-    fetchWish();
-  }, [wishId]);
 
-  // Handle donation
+    init();
+  }, [id]);
+
   const handleDonate = async () => {
     if (!amount || Number(amount) <= 0) {
       setError("Please enter a valid donation amount.");
@@ -55,7 +59,6 @@ export default function DonatePage() {
     setProcessing(true);
 
     try {
-      // Pick correct Supabase Edge Function
       let fnName;
       switch (paymentMethod) {
         case "flutterwave":
@@ -76,16 +79,15 @@ export default function DonatePage() {
           amount,
           wishId: wish?.id || null,
           userMode: isGuest ? "guest" : "registered",
+          isMock: wish?.isMock || false,
         },
       });
 
       if (error) throw error;
       if (!data?.checkout_url) throw new Error("Invalid payment response.");
-
-      // Redirect to payment page
       window.location.href = data.checkout_url;
     } catch (err) {
-      console.error("Donation error:", err);
+      console.error(err);
       setError("Failed to initiate donation. Please try again.");
     } finally {
       setProcessing(false);
@@ -133,7 +135,6 @@ export default function DonatePage() {
             </p>
           )}
 
-          {/* Donation form */}
           <div className="flex flex-col gap-2">
             <label className="font-medium text-slate-700 dark:text-slate-200">
               Donation Amount ($)
