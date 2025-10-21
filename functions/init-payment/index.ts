@@ -13,29 +13,29 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 
 serve(async (req) => {
   try {
-    if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+    if (req.method !== "POST") {
+      return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+    }
 
     const body = await req.json();
     const { wishId, donor_name, donor_email, amount, method } = body;
 
     if (!wishId || !donor_name || !donor_email || !amount || !method) {
-      return new Response(JSON.stringify({ error: "missing fields" }), { status: 400 });
+      return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
     }
 
-    // 1) read admin_percent from settings
-    const { data: setting, error: sErr } = await supabase
+    // 1️⃣ Fetch admin_percent setting
+    const { data: setting } = await supabase
       .from("settings")
       .select("value")
       .eq("key", "admin_percent")
       .single();
 
-    if (sErr) console.warn("No admin_percent setting or error:", sErr);
-
-    const adminPercent = parseFloat(setting?.value ?? "10"); // fallback 10%
-    const adminCut = Math.round((amount * adminPercent) * 100) / 10000; // careful: amount likely in decimal; we'll store adminCut as same currency decimals
+    const adminPercent = parseFloat(setting?.value ?? "10");
+    const adminCut = Math.round((amount * adminPercent) / 100 * 100) / 100;
     const wishCut = Math.round((amount - adminCut) * 100) / 100;
 
-    // 2) create payments record (pending)
+    // 2️⃣ Create payment record (pending)
     const { data: payment, error: insertErr } = await supabase
       .from("payments")
       .insert([
@@ -48,7 +48,7 @@ serve(async (req) => {
           method,
           status: "pending",
           admin_cut: adminCut,
-          wish_cut: wishCut
+          wish_cut: wishCut,
         },
       ])
       .select()
@@ -56,12 +56,11 @@ serve(async (req) => {
 
     if (insertErr) throw insertErr;
 
-    // 3) initialize provider-specific payment and return redirect URL
-    let redirectUrl = null;
+    // 3️⃣ Initialize Payment Gateway
+    let redirectUrl: string | null = null;
 
-    // --- Paystack (Card) initialization ---
+    // --- Paystack ---
     if (method === "card") {
-      // Paystack initialize
       const psResp = await fetch("https://api.paystack.co/transaction/initialize", {
         method: "POST",
         headers: {
@@ -70,8 +69,8 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           email: donor_email,
-          amount: Math.round(Number(amount) * 100), // kobo
-          callback_url: `${BASE_URL}/payment/success?source=paystack&paymentId=${payment.id}`,
+          amount: Math.round(Number(amount) * 100), // convert to kobo
+          callback_url: `${BASE_URL}/success?source=paystack&paymentId=${payment.id}`,
           metadata: { wishId, paymentId: payment.id },
         }),
       });
@@ -80,9 +79,8 @@ serve(async (req) => {
       redirectUrl = psJson.data.authorization_url;
     }
 
-    // --- Flutterwave (Bank Transfer / multiple methods) ---
+    // --- Flutterwave ---
     else if (method === "bank") {
-      // Flutterwave v3 payment create
       const txRef = `wish_${payment.id}_${Date.now()}`;
       const flwResp = await fetch("https://api.flutterwave.com/v3/payments", {
         method: "POST",
@@ -92,9 +90,9 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           tx_ref: txRef,
-          amount: amount,
+          amount,
           currency: "USD",
-          redirect_url: `${BASE_URL}/payment/success?source=flutterwave&paymentId=${payment.id}`,
+          redirect_url: `${BASE_URL}/success?source=flutterwave&paymentId=${payment.id}`,
           customer: { email: donor_email, name: donor_name },
           meta: { wishId, paymentId: payment.id },
         }),
@@ -106,7 +104,6 @@ serve(async (req) => {
 
     // --- NowPayments (Crypto) ---
     else if (method === "crypto") {
-      // NowPayments (create invoice/charge)
       const npResp = await fetch("https://api.nowpayments.io/v1/invoice", {
         method: "POST",
         headers: {
@@ -119,8 +116,8 @@ serve(async (req) => {
           pay_currency: "usdt",
           order_id: `${payment.id}`,
           order_description: "Donation for wish",
-          success_url: `${BASE_URL}/payment/success?source=nowpayments&paymentId=${payment.id}`,
-          cancel_url: `${BASE_URL}/payment/cancel?paymentId=${payment.id}`,
+          success_url: `${BASE_URL}/success?source=nowpayments&paymentId=${payment.id}`,
+          cancel_url: `${BASE_URL}/cancel?paymentId=${payment.id}`,
         }),
       });
       const npJson = await npResp.json();
@@ -128,12 +125,12 @@ serve(async (req) => {
       redirectUrl = npJson.invoice_url || npJson.data?.url;
     }
 
-    // If no valid gateway matched
+    // 4️⃣ Return redirect
     if (!redirectUrl) {
-      return new Response(JSON.stringify({ payment, message: "No redirect url created" }), { status: 200 });
+      return new Response(JSON.stringify({ payment, message: "Payment created but no redirect URL" }), { status: 200 });
     }
 
-    return new Response(JSON.stringify({ payment, redirect: redirectUrl }), {
+    return new Response(JSON.stringify({ redirect: redirectUrl, payment }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
