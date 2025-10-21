@@ -1,3 +1,4 @@
+// pages/api/payments/[method].js
 import { supabaseAdmin } from "../../../lib/supabaseClient";
 
 export default async function handler(req, res) {
@@ -5,16 +6,23 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { wishId, donor_name, donor_email, amount, method } = req.body;
+  const { wishId, donor_name, donor_email, amount, method, guest, user_id } = req.body;
 
+  // ✅ Basic input validation
   if (!wishId || !donor_name || !donor_email || !amount || !method) {
     return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  // ✅ Allowed payment methods
+  const supportedMethods = ["paystack", "flutterwave", "nowpayments"];
+  if (!supportedMethods.includes(method)) {
+    return res.status(400).json({ error: "Unsupported payment method" });
   }
 
   try {
     const supabase = supabaseAdmin();
 
-    // 1️⃣ Get admin percentage (fallback to 10%)
+    // 1️⃣ Fetch admin percent (fallback to 10%)
     const { data: setting } = await supabase
       .from("settings")
       .select("value")
@@ -39,6 +47,8 @@ export default async function handler(req, res) {
           status: "pending",
           admin_cut: adminCut,
           wish_cut: wishCut,
+          guest: guest ? true : false,
+          user_id: guest ? null : user_id || null,
         },
       ])
       .select()
@@ -46,8 +56,11 @@ export default async function handler(req, res) {
 
     if (insertError) throw insertError;
 
+    // ✅ Base URL handling
     const baseUrl =
-      process.env.NEXT_PUBLIC_SITE_URL || "https://wishhoffrichies.onrender.com";
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000";
 
     let paymentUrl = null;
 
@@ -63,13 +76,17 @@ export default async function handler(req, res) {
           email: donor_email,
           amount: Math.round(Number(amount) * 100), // Convert to kobo
           callback_url: `${baseUrl}/wish/${wishId}?status=success`,
-          metadata: { payment_id: payment.id, wish_id: wishId },
+          metadata: {
+            payment_id: payment.id,
+            wish_id: wishId,
+            guest: guest ? true : false,
+          },
         }),
       });
 
       const payData = await init.json();
       if (!init.ok || !payData?.data?.authorization_url) {
-        throw new Error(payData?.message || "Paystack init failed");
+        throw new Error(payData?.message || "Paystack initialization failed");
       }
 
       paymentUrl = payData.data.authorization_url;
@@ -91,13 +108,17 @@ export default async function handler(req, res) {
           currency: "USD",
           redirect_url: `${baseUrl}/wish/${wishId}?status=success`,
           customer: { email: donor_email, name: donor_name },
-          meta: { wish_id: wishId, payment_id: payment.id },
+          meta: {
+            wish_id: wishId,
+            payment_id: payment.id,
+            guest: guest ? true : false,
+          },
         }),
       });
 
       const flwData = await init.json();
       if (!init.ok || !flwData?.data?.link) {
-        throw new Error(flwData?.message || "Flutterwave init failed");
+        throw new Error(flwData?.message || "Flutterwave initialization failed");
       }
 
       paymentUrl = flwData.data.link;
@@ -124,7 +145,7 @@ export default async function handler(req, res) {
 
       const nowData = await init.json();
       if (!init.ok || !nowData?.invoice_url) {
-        throw new Error(nowData?.message || "NowPayments init failed");
+        throw new Error(nowData?.message || "NowPayments initialization failed");
       }
 
       paymentUrl = nowData.invoice_url;
@@ -134,7 +155,7 @@ export default async function handler(req, res) {
       throw new Error("Payment link not generated. Check provider API or keys.");
     }
 
-    // ✅ Return response
+    // ✅ Return success response
     return res.status(200).json({
       status: "success",
       message: "Payment initialized successfully",
