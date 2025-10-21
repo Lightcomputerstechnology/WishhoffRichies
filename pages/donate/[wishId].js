@@ -5,7 +5,7 @@ import Head from "next/head";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { supabase } from "../../lib/supabaseClient";
-import { generateMockWishes } from "../explore"; // 👈 reuse the mock generator
+import { generateMockWishes } from "../explore"; // 👈 reuse mock generator
 
 export default function DonatePage() {
   const router = useRouter();
@@ -26,7 +26,18 @@ export default function DonatePage() {
 
       if (!id) return setLoading(false);
 
-      // Try loading from Supabase
+      // Always check if explicitly marked as mock
+      if (mock === "1") {
+        const mockWish = generateMockWishes().find((w) => w.id === id);
+        if (mockWish) {
+          mockWish.isMock = true;
+          setWish(mockWish);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Try fetching from Supabase first
       const { data, error } = await supabase
         .from("wishes")
         .select("*")
@@ -34,7 +45,7 @@ export default function DonatePage() {
         .single();
 
       if (!data || error) {
-        // Fallback to mock if marked or missing
+        // fallback to mock if missing
         const mockWish = generateMockWishes().find((w) => w.id === id);
         if (mockWish) {
           mockWish.isMock = true;
@@ -48,7 +59,7 @@ export default function DonatePage() {
     };
 
     init();
-  }, [id]);
+  }, [id, mock]);
 
   const handleDonate = async () => {
     if (!amount || Number(amount) <= 0) {
@@ -59,6 +70,14 @@ export default function DonatePage() {
     setProcessing(true);
 
     try {
+      // ⚙️ If this is a mock wish — simulate success
+      if (wish?.isMock) {
+        await new Promise((r) => setTimeout(r, 1500));
+        router.push("/donate/success?mock=1");
+        return;
+      }
+
+      // ✅ Otherwise invoke payment function
       let fnName;
       switch (paymentMethod) {
         case "flutterwave":
@@ -85,10 +104,16 @@ export default function DonatePage() {
 
       if (error) throw error;
       if (!data?.checkout_url) throw new Error("Invalid payment response.");
+
       window.location.href = data.checkout_url;
     } catch (err) {
       console.error(err);
-      setError("Failed to initiate donation. Please try again.");
+      const message = err.message.includes("timeout")
+        ? "Connection timeout. Please try again."
+        : err.message.includes("Unsupported")
+        ? "Invalid payment method selected."
+        : "Failed to initiate donation. Please try again.";
+      setError(message);
     } finally {
       setProcessing(false);
     }
@@ -106,7 +131,18 @@ export default function DonatePage() {
   return (
     <>
       <Head>
-        <title>Donate | LightTech</title>
+        <title>
+          {wish ? `Donate to ${wish.title} | LightTech` : "Donate | LightTech"}
+        </title>
+        <meta
+          name="description"
+          content="Support wishes and dreams through LightTech's donation platform. Make a positive impact today."
+        />
+        <meta property="og:title" content="LightTech Donations" />
+        <meta
+          property="og:description"
+          content="Empowering change, one donation at a time."
+        />
       </Head>
 
       <Navbar />
@@ -123,7 +159,7 @@ export default function DonatePage() {
                 {wish.title}
               </h2>
               <p className="text-slate-600 dark:text-slate-300">
-                Requested by: <strong>{wish.name}</strong>
+                Requested by: <strong>{wish.name || "Anonymous"}</strong>
               </p>
               <p className="text-slate-500 dark:text-slate-400">
                 Goal: <strong>${wish.amount}</strong>
@@ -136,10 +172,14 @@ export default function DonatePage() {
           )}
 
           <div className="flex flex-col gap-2">
-            <label className="font-medium text-slate-700 dark:text-slate-200">
+            <label
+              htmlFor="amount"
+              className="font-medium text-slate-700 dark:text-slate-200"
+            >
               Donation Amount ($)
             </label>
             <input
+              id="amount"
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
@@ -149,10 +189,14 @@ export default function DonatePage() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="font-medium text-slate-700 dark:text-slate-200">
+            <label
+              htmlFor="payment-method"
+              className="font-medium text-slate-700 dark:text-slate-200"
+            >
               Choose Payment Method
             </label>
             <select
+              id="payment-method"
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
               className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary transition"
@@ -163,7 +207,9 @@ export default function DonatePage() {
             </select>
           </div>
 
-          {error && <p className="text-red-500 text-center">{error}</p>}
+          {error && (
+            <p className="text-red-500 text-center font-medium">{error}</p>
+          )}
 
           <button
             onClick={handleDonate}
