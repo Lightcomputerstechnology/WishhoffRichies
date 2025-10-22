@@ -1,4 +1,4 @@
-// pages/api/checkout/create-session.js
+// pages/api/payments/create-session.js
 import axios from "axios";
 import { supabaseAdmin } from "../../../lib/supabaseClient";
 
@@ -11,20 +11,18 @@ export default async function handler(req, res) {
   const {
     wishId,
     amount,
-    currency = "NGN",
+    currency = "USD",
     donorEmail,
-    paymentMethod = "paystack",
-    donorType = "user", // 👈 "user" | "guest"
+    donorName,
+    paymentMethod = "card", // "card" | "bank" | "crypto"
   } = req.body;
 
   if (!wishId || !amount) {
-    return res
-      .status(400)
-      .json({ error: "Missing required fields: wishId or amount" });
+    return res.status(400).json({ error: "Missing required fields: wishId or amount" });
   }
 
   try {
-    // ✅ 1. Verify that the wish exists
+    // ✅ Verify that the wish exists
     const { data: wish, error: wishError } = await supabaseAdmin()
       .from("wishes")
       .select("id, title")
@@ -35,14 +33,12 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "Wish not found" });
     }
 
-    const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL || "https://wishhoffrichies.onrender.com";
-
+    const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://wishhoffrichies-fi38.onrender.com";
+    const reference = `wish_${wishId}_${Date.now()}`;
     let paymentUrl = "";
-    const reference = `WISH-${wishId}-${Date.now()}`;
 
-    // ✅ 2. Payment Gateway selection
-    if (paymentMethod === "paystack") {
+    // ✅ Paystack
+    if (paymentMethod === "card") {
       const response = await axios.post(
         "https://api.paystack.co/transaction/initialize",
         {
@@ -50,79 +46,83 @@ export default async function handler(req, res) {
           amount: Math.round(Number(amount) * 100),
           currency,
           reference,
-          callback_url: `${siteUrl}/wish/${wishId}?status=success`,
-          metadata: { wish_id: wishId, donor_type: donorType },
+          callback_url: `${siteUrl}/success?source=paystack&wishId=${wishId}`,
+          metadata: { wishId },
         },
         {
           headers: {
-            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+            Authorization: `Bearer ${process.env.PAYSTACK_SECRET}`,
             "Content-Type": "application/json",
           },
         }
       );
       paymentUrl = response.data.data.authorization_url;
-    } else if (paymentMethod === "flutterwave") {
+    }
+
+    // ✅ Flutterwave
+    else if (paymentMethod === "bank") {
       const response = await axios.post(
         "https://api.flutterwave.com/v3/payments",
         {
           tx_ref: reference,
           amount,
           currency,
-          redirect_url: `${siteUrl}/wish/${wishId}?status=success`,
-          customer: { email: donorEmail || "anonymous@wishhoff.com" },
-          meta: { wish_id: wishId, donor_type: donorType },
+          redirect_url: `${siteUrl}/success?source=flutterwave&wishId=${wishId}`,
+          customer: { email: donorEmail || "anonymous@wishhoff.com", name: donorName },
+          meta: { wishId },
         },
         {
           headers: {
-            Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+            Authorization: `Bearer ${process.env.FLW_SECRET}`,
             "Content-Type": "application/json",
           },
         }
       );
       paymentUrl = response.data.data.link;
-    } else if (paymentMethod === "nowpay") {
+    }
+
+    // ✅ NowPayments (Crypto)
+    else if (paymentMethod === "crypto") {
       const response = await axios.post(
         "https://api.nowpayments.io/v1/invoice",
         {
           price_amount: amount,
-          price_currency: currency,
-          pay_currency: "USDT",
+          price_currency: "usd",
+          pay_currency: "usdt",
           order_id: reference,
           order_description: `Donation to "${wish.title}"`,
-          success_url: `${siteUrl}/wish/${wishId}?status=success`,
-          cancel_url: `${siteUrl}/wish/${wishId}?status=cancel`,
+          success_url: `${siteUrl}/success?source=nowpayments&wishId=${wishId}`,
+          cancel_url: `${siteUrl}/cancel?wishId=${wishId}`,
         },
         {
           headers: {
-            "x-api-key": process.env.NOWPAY_API_KEY,
+            "x-api-key": process.env.NOWPAYMENTS_KEY,
             "Content-Type": "application/json",
           },
         }
       );
       paymentUrl = response.data.invoice_url;
-    } else {
-      return res.status(400).json({ error: "Invalid payment method" });
     }
 
-    // ✅ 3. Log payment
+    // ✅ Log payment in Supabase
     await supabaseAdmin()
       .from("payments")
       .insert([
         {
-          user_email: donorEmail,
           wish_id: wishId,
+          donor_name: donorName,
+          donor_email: donorEmail,
           method: paymentMethod,
           amount,
           currency,
           status: "pending",
-          reference,
-          donor_type: donorType, // 👈 add this column
+          provider_reference: reference,
         },
       ]);
 
-    return res.status(200).json({ checkout_url: paymentUrl, reference });
+    return res.status(200).json({ redirect: paymentUrl, reference });
   } catch (err) {
-    console.error("Payment Session Error:", err.response?.data || err.message);
+    console.error("💥 Payment Session Error:", err.response?.data || err.message);
     return res.status(500).json({
       error: "Failed to create payment session",
       details: err.response?.data || err.message,
