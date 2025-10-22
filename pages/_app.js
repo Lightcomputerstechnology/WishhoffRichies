@@ -1,3 +1,4 @@
+// pages/_app.js
 "use client";
 
 import '../styles/globals.css';
@@ -10,33 +11,32 @@ import { SessionContextProvider } from '@supabase/auth-helpers-react';
 
 export default function MyApp({ Component, pageProps }) {
   const [supabaseClient, setSupabaseClient] = useState(null);
-  const [envError, setEnvError] = useState('');
+  const [envError, setEnvError] = useState(null);
 
   useEffect(() => {
-    // List all critical environment variables
-    const requiredVars = [
+    // Validate required client-side environment variables
+    const requiredClientVars = [
+      'NEXT_PUBLIC_SUPABASE_URL',
+      'NEXT_PUBLIC_SUPABASE_ANON_KEY',
       'NEXT_PUBLIC_FLW_PUBLIC',
       'NEXT_PUBLIC_NOWPAY_PUBLIC',
       'NEXT_PUBLIC_PAYSTACK_PUBLIC',
       'NEXT_PUBLIC_SITE_URL',
-      'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-      'NEXT_PUBLIC_SUPABASE_URL',
-      'RESEND_API_KEY',
-      'SENDGRID_FROM',
-      'SUPABASE_SERVICE_ROLE_KEY',
     ];
 
-    // Check each variable
-    const missing = requiredVars.filter((v) => !process.env[v]);
+    const missingVars = requiredClientVars.filter(
+      (key) => !process.env[key]
+    );
 
-    if (missing.length > 0) {
+    if (missingVars.length > 0) {
       setEnvError(
-        `❌ Missing environment variables!\n` +
-        missing.map((v) => `- ${v}`).join('\n')
+        `❌ Missing client environment variables: ${missingVars.join(', ')}`
       );
+      console.error('Missing environment variables:', missingVars);
       return;
     }
 
+    // Initialize Supabase client
     setSupabaseClient(createPagesBrowserClient());
 
     // Initialize AOS
@@ -46,7 +46,7 @@ export default function MyApp({ Component, pageProps }) {
       easing: 'ease-out-cubic',
     });
 
-    // Optional: catch uncaught errors for mobile debugging
+    // Optional: log uncaught errors on page for debugging
     window.onerror = (msg, url, line, col, error) => {
       document.body.innerHTML = `<pre style="color:red;">${msg}\n${error?.stack}</pre>`;
     };
@@ -54,8 +54,11 @@ export default function MyApp({ Component, pageProps }) {
 
   if (envError) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 text-red-500 whitespace-pre-wrap">
-        {envError}
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <pre className="text-red-500 font-bold text-center">{envError}</pre>
+        <p className="mt-4 text-slate-700 dark:text-slate-300 text-center">
+          Please check your environment variables in Render and redeploy the app.
+        </p>
       </div>
     );
   }
@@ -71,7 +74,10 @@ export default function MyApp({ Component, pageProps }) {
   }
 
   return (
-    <SessionContextProvider supabaseClient={supabaseClient} initialSession={pageProps.initialSession}>
+    <SessionContextProvider
+      supabaseClient={supabaseClient}
+      initialSession={pageProps.initialSession}
+    >
       <Component {...pageProps} />
       <Toaster
         position="top-center"
