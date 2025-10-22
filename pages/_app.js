@@ -1,5 +1,3 @@
-Apply 
-
 // pages/_app.js
 "use client";
 
