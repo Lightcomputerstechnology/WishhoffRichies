@@ -5,16 +5,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    // The base Supabase URL, e.g. https://abc.supabase.co
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!supabaseUrl) {
-      throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL in environment");
+    // ✅ Prefer a generic env variable name that works everywhere
+    const SUPABASE_URL =
+      process.env.SERVICE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+    if (!SUPABASE_URL) {
+      throw new Error("Missing SERVICE_URL (or NEXT_PUBLIC_SUPABASE_URL)");
     }
 
-    // Convert to Supabase Functions endpoint:
-    const fnBase = supabaseUrl.replace(".supabase.co", ".functions.supabase.co");
+    // ✅ Build the Supabase Function endpoint dynamically
+    const fnBase = SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co");
 
-    // Call your Supabase Edge Function
+    // ✅ Call your Supabase Edge Function (init-payment)
     const resp = await fetch(`${fnBase}/init-payment`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -34,6 +36,6 @@ export default async function handler(req, res) {
     return res.status(200).json(data);
   } catch (err) {
     console.error("💥 API /payments/init error:", err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message || "Unexpected error" });
   }
 }
