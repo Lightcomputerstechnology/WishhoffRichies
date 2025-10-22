@@ -1,4 +1,3 @@
-// pages/_app.js
 "use client";
 
 import '../styles/globals.css';
@@ -11,25 +10,56 @@ import { SessionContextProvider } from '@supabase/auth-helpers-react';
 
 export default function MyApp({ Component, pageProps }) {
   const [supabaseClient, setSupabaseClient] = useState(null);
+  const [envError, setEnvError] = useState('');
 
-  // Initialize Supabase client on client-side only
   useEffect(() => {
+    // List all critical environment variables
+    const requiredVars = [
+      'NEXT_PUBLIC_FLW_PUBLIC',
+      'NEXT_PUBLIC_NOWPAY_PUBLIC',
+      'NEXT_PUBLIC_PAYSTACK_PUBLIC',
+      'NEXT_PUBLIC_SITE_URL',
+      'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+      'NEXT_PUBLIC_SUPABASE_URL',
+      'RESEND_API_KEY',
+      'SENDGRID_FROM',
+      'SUPABASE_SERVICE_ROLE_KEY',
+    ];
+
+    // Check each variable
+    const missing = requiredVars.filter((v) => !process.env[v]);
+
+    if (missing.length > 0) {
+      setEnvError(
+        `❌ Missing environment variables!\n` +
+        missing.map((v) => `- ${v}`).join('\n')
+      );
+      return;
+    }
+
     setSupabaseClient(createPagesBrowserClient());
 
-    // Initialize AOS after window exists
+    // Initialize AOS
     AOS.init({
       duration: 1000,
       once: true,
       easing: 'ease-out-cubic',
     });
 
-    // Optional: log uncaught errors on the page for iPhone debugging
+    // Optional: catch uncaught errors for mobile debugging
     window.onerror = (msg, url, line, col, error) => {
       document.body.innerHTML = `<pre style="color:red;">${msg}\n${error?.stack}</pre>`;
     };
   }, []);
 
-  // Show loading until client is ready
+  if (envError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 text-red-500 whitespace-pre-wrap">
+        {envError}
+      </div>
+    );
+  }
+
   if (!supabaseClient) {
     return (
       <div className="min-h-screen flex items-center justify-center">
