@@ -1,6 +1,12 @@
 // pages/api/payments/create-session.js
 import axios from "axios";
-import { supabaseAdmin } from "../../../lib/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
+
+// ✅ Create admin client with your current environment variable naming
+const supabaseAdmin = createClient(
+  process.env.SERVICE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -23,7 +29,7 @@ export default async function handler(req, res) {
 
   try {
     // ✅ Verify that the wish exists
-    const { data: wish, error: wishError } = await supabaseAdmin()
+    const { data: wish, error: wishError } = await supabaseAdmin
       .from("wishes")
       .select("id, title")
       .eq("id", wishId)
@@ -37,7 +43,7 @@ export default async function handler(req, res) {
     const reference = `wish_${wishId}_${Date.now()}`;
     let paymentUrl = "";
 
-    // ✅ Paystack
+    // ✅ Paystack (Card)
     if (paymentMethod === "card") {
       const response = await axios.post(
         "https://api.paystack.co/transaction/initialize",
@@ -56,10 +62,14 @@ export default async function handler(req, res) {
           },
         }
       );
+
+      if (!response.data?.data?.authorization_url) {
+        throw new Error(response.data?.message || "Paystack init failed");
+      }
       paymentUrl = response.data.data.authorization_url;
     }
 
-    // ✅ Flutterwave
+    // ✅ Flutterwave (Bank)
     else if (paymentMethod === "bank") {
       const response = await axios.post(
         "https://api.flutterwave.com/v3/payments",
@@ -78,6 +88,10 @@ export default async function handler(req, res) {
           },
         }
       );
+
+      if (!response.data?.data?.link) {
+        throw new Error(response.data?.message || "Flutterwave init failed");
+      }
       paymentUrl = response.data.data.link;
     }
 
@@ -101,11 +115,15 @@ export default async function handler(req, res) {
           },
         }
       );
+
+      if (!response.data?.invoice_url) {
+        throw new Error(response.data?.message || "NowPayments init failed");
+      }
       paymentUrl = response.data.invoice_url;
     }
 
-    // ✅ Log payment in Supabase
-    await supabaseAdmin()
+    // ✅ Save payment record in Supabase
+    await supabaseAdmin
       .from("payments")
       .insert([
         {
@@ -120,6 +138,7 @@ export default async function handler(req, res) {
         },
       ]);
 
+    // ✅ Respond with redirect link
     return res.status(200).json({ redirect: paymentUrl, reference });
   } catch (err) {
     console.error("💥 Payment Session Error:", err.response?.data || err.message);
