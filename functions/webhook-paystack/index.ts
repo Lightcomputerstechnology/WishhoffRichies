@@ -1,88 +1,49 @@
-import { serve } from "std/server";
+import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
-// ✅ Use your working environment variable pattern
-const SERVICE_URL = Deno.env.get("SERVICE_URL")!;
-const SERVICE_ROLE_KEY = Deno.env.get("SERVICE_ROLE_KEY")!;
-const PAYSTACK_SECRET = Deno.env.get("PAYSTACK_SECRET")!;
+const supabaseAdmin = createClient(
+  process.env.SERVICE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SERVICE_ROLE_KEY
+);
 
-const supabase = createClient(SERVICE_URL, SERVICE_ROLE_KEY);
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).end();
 
-serve(async (req) => {
   try {
-    const rawBody = await req.text();
+    const rawBody = JSON.stringify(req.body);
     const sigHeader =
-      req.headers.get("x-paystack-signature") ||
-      req.headers.get("X-Paystack-Signature");
+      req.headers["x-paystack-signature"] || req.headers["X-Paystack-Signature"];
 
-    // ✅ Verify signature (HMAC-SHA512)
-    const encoder = new TextEncoder();
-    const keyData = encoder.encode(PAYSTACK_SECRET);
-    const msgUint8 = encoder.encode(rawBody);
+    // ✅ Verify Paystack signature
+    const computedSig = crypto
+      .createHmac("sha512", process.env.PAYSTACK_SECRET)
+      .update(rawBody)
+      .digest("hex");
 
-    const cryptoKey = await crypto.subtle.importKey(
-      "raw",
-      keyData,
-      { name: "HMAC", hash: "SHA-512" },
-      false,
-      ["sign"]
-    );
-
-    const signatureBuffer = await crypto.subtle.sign("HMAC", cryptoKey, msgUint8);
-    const computedSig = Array.from(new Uint8Array(signatureBuffer))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-
-    if (!sigHeader || computedSig !== sigHeader) {
+    if (computedSig !== sigHeader) {
       console.warn("❌ Invalid Paystack signature");
-      return new Response(JSON.stringify({ error: "Invalid signature" }), {
-        status: 400,
-      });
+      return res.status(400).json({ error: "Invalid signature" });
     }
 
-    // ✅ Parse JSON
-    let payload: any;
-    try {
-      payload = JSON.parse(rawBody);
-    } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-      });
-    }
-
-    // ✅ Process successful transaction
-    if (
-      payload.event === "charge.success" ||
-      payload.event === "transaction.success"
-    ) {
+    const payload = req.body;
+    if (payload?.event === "charge.success" || payload?.event === "transaction.success") {
       const data = payload.data;
-      const paymentId =
-        data?.metadata?.paymentId || // this must match how you send it from init-payment
-        extractPaymentIdFromReference(data?.reference);
+      const ref = data?.reference;
+      const paymentId = extractPaymentIdFromReference(ref);
 
-      if (!paymentId) {
-        console.warn("⚠️ No payment ID found in webhook payload");
-        return new Response(JSON.stringify({ error: "Missing payment ID" }), {
-          status: 400,
-        });
-      }
+      if (!paymentId)
+        return res.status(400).json({ error: "Missing payment ID" });
 
-      // ✅ Get payment record
-      const { data: paymentRow, error: paymentErr } = await supabase
+      const { data: payment } = await supabaseAdmin
         .from("payments")
         .select("*")
         .eq("id", paymentId)
         .maybeSingle();
 
-      if (paymentErr || !paymentRow) {
-        console.error("❌ Payment not found:", paymentErr);
-        return new Response(JSON.stringify({ error: "Payment not found" }), {
-          status: 404,
-        });
-      }
+      if (!payment)
+        return res.status(404).json({ error: "Payment not found" });
 
-      // ✅ Mark payment succeeded
-      await supabase
+      await supabaseAdmin
         .from("payments")
         .update({
           status: "succeeded",
@@ -90,46 +51,37 @@ serve(async (req) => {
         })
         .eq("id", paymentId);
 
-      // ✅ Update wish raised amount
-      if (paymentRow.wish_id) {
-        try {
-          await supabase.rpc("increment_wish_amount", {
-            wish_uuid: paymentRow.wish_id,
-            inc_amount: Number(paymentRow.amount),
-          });
-        } catch (rpcErr) {
-          console.warn("RPC fallback (Paystack):", rpcErr);
-          const { data: wish } = await supabase
-            .from("wishes")
-            .select("raised_amount")
-            .eq("id", paymentRow.wish_id)
-            .maybeSingle();
-          if (wish) {
-            await supabase
-              .from("wishes")
-              .update({
-                raised_amount:
-                  Number(wish.raised_amount || 0) +
-                  Number(paymentRow.amount || 0),
-              })
-              .eq("id", paymentRow.wish_id);
-          }
-        }
+      if (payment.wish_id) {
+        await incrementWishAmount(payment.wish_id, payment.amount);
       }
-
-      console.log(`✅ Payment ${paymentId} marked as succeeded`);
     }
 
-    return new Response(JSON.stringify({ received: true }), { status: 200 });
-  } catch (err: any) {
+    return res.status(200).json({ received: true });
+  } catch (err) {
     console.error("💥 Paystack Webhook Error:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    return res.status(500).json({ error: err.message });
   }
-});
+}
 
-// 🔧 Helper: Extract paymentId from Paystack reference (e.g. "wish_<id>_<timestamp>")
-function extractPaymentIdFromReference(ref: string | undefined) {
+function extractPaymentIdFromReference(ref) {
   if (!ref) return null;
-  const match = ref.match(/wish_([a-zA-Z0-9-]+)/);
-  return match ? match[1] : null;
+  const m = ref.match(/wish_([a-zA-Z0-9-]+)/);
+  return m ? m[1] : null;
+}
+
+async function incrementWishAmount(wishId, amount) {
+  const { data: wish } = await supabaseAdmin
+    .from("wishes")
+    .select("raised_amount")
+    .eq("id", wishId)
+    .maybeSingle();
+
+  if (wish) {
+    await supabaseAdmin
+      .from("wishes")
+      .update({
+        raised_amount: Number(wish.raised_amount || 0) + Number(amount),
+      })
+      .eq("id", wishId);
+  }
 }
