@@ -1,98 +1,79 @@
-import { serve } from "std/server";
 import { createClient } from "@supabase/supabase-js";
 
-// ✅ Use your actual working Supabase env variable names
-const SERVICE_URL = Deno.env.get("SERVICE_URL")!;
-const SERVICE_ROLE_KEY = Deno.env.get("SERVICE_ROLE_KEY")!;
-const FLW_WEBHOOK_SECRET = Deno.env.get("FLW_WEBHOOK_SECRET")!; // from Flutterwave Dashboard
+const supabaseAdmin = createClient(
+  process.env.SERVICE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SERVICE_ROLE_KEY
+);
 
-const supabase = createClient(SERVICE_URL, SERVICE_ROLE_KEY);
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).end();
 
-serve(async (req) => {
   try {
-    // ✅ Get and verify Flutterwave webhook signature
     const signature =
-      req.headers.get("verif-hash") ||
-      req.headers.get("x-flw-signature") ||
-      req.headers.get("verif_hash");
+      req.headers["verif-hash"] ||
+      req.headers["x-flw-signature"] ||
+      req.headers["verif_hash"];
 
-    if (!signature || signature !== FLW_WEBHOOK_SECRET) {
-      console.error("❌ Invalid Flutterwave webhook signature");
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    if (!signature || signature !== process.env.FLW_WEBHOOK_SECRET) {
+      console.error("❌ Invalid Flutterwave signature");
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // ✅ Parse the webhook payload
-    const event = await req.json();
+    const event = req.body;
+    if (event?.data?.status === "successful" || event?.event === "payment.completed") {
+      const ref = event.data?.tx_ref;
+      const paymentId = extractPaymentIdFromTxRef(ref);
 
-    if (
-      event?.data?.status === "successful" ||
-      event?.event === "payment.completed"
-    ) {
-      const meta = event.data?.meta || {};
-      const refPaymentId =
-        meta?.paymentId || extractPaymentIdFromTxRef(event.data?.tx_ref);
+      if (!paymentId) return res.status(400).json({ error: "Missing paymentId" });
 
-      if (!refPaymentId) {
-        console.error("⚠️ Missing paymentId in webhook");
-        return new Response(JSON.stringify({ error: "No paymentId found" }), {
-          status: 400,
-        });
-      }
+      const { data: payment } = await supabaseAdmin
+        .from("payments")
+        .select("*")
+        .eq("id", paymentId)
+        .maybeSingle();
 
-      // ✅ Update payment status to succeeded
-      await supabase
+      if (!payment)
+        return res.status(404).json({ error: "Payment not found" });
+
+      await supabaseAdmin
         .from("payments")
         .update({
           status: "succeeded",
           provider_charge_id: event.data?.id || event.data?.tx_ref,
         })
-        .eq("id", refPaymentId);
+        .eq("id", paymentId);
 
-      // ✅ Fetch payment details to update related wish
-      const { data: paymentRow } = await supabase
-        .from("payments")
-        .select("*")
-        .eq("id", refPaymentId)
-        .maybeSingle();
-
-      if (paymentRow?.wish_id) {
-        try {
-          // Prefer stored procedure if it exists
-          await supabase.rpc("increment_wish_amount", {
-            wish_uuid: paymentRow.wish_id,
-            inc_amount: Number(paymentRow.amount),
-          });
-        } catch (e) {
-          // Fallback update
-          const { data: wishData } = await supabase
-            .from("wishes")
-            .select("raised_amount")
-            .eq("id", paymentRow.wish_id)
-            .maybeSingle();
-
-          if (wishData) {
-            await supabase
-              .from("wishes")
-              .update({
-                raised_amount:
-                  Number(wishData.raised_amount || 0) +
-                  Number(paymentRow.amount || 0),
-              })
-              .eq("id", paymentRow.wish_id);
-          }
-        }
+      if (payment.wish_id) {
+        await incrementWishAmount(payment.wish_id, payment.amount);
       }
     }
 
-    return new Response(JSON.stringify({ received: true }), { status: 200 });
-  } catch (err: any) {
-    console.error("🔥 Flutterwave webhook error:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    return res.status(200).json({ received: true });
+  } catch (err) {
+    console.error("🔥 Flutterwave Webhook Error:", err);
+    return res.status(500).json({ error: err.message });
   }
-});
+}
 
-function extractPaymentIdFromTxRef(txRef: string | null) {
+function extractPaymentIdFromTxRef(txRef) {
   if (!txRef) return null;
-  const m = txRef.match(/wish_([0-9a-fA-F-]+)/);
+  const m = txRef.match(/wish_([a-zA-Z0-9-]+)/);
   return m ? m[1] : null;
+}
+
+async function incrementWishAmount(wishId, amount) {
+  const { data: wish } = await supabaseAdmin
+    .from("wishes")
+    .select("raised_amount")
+    .eq("id", wishId)
+    .maybeSingle();
+
+  if (wish) {
+    await supabaseAdmin
+      .from("wishes")
+      .update({
+        raised_amount: Number(wish.raised_amount || 0) + Number(amount),
+      })
+      .eq("id", wishId);
+  }
 }
