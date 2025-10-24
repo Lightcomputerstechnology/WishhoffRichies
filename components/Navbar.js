@@ -1,4 +1,3 @@
-// components/Navbar.js
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -9,32 +8,28 @@ export default function Navbar() {
   const [dark, setDark] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // 🔹 Track Supabase user session
   useEffect(() => {
-    const getUser = async () => {
+    const loadUser = async () => {
       const { data } = await supabase.auth.getUser();
       setUser(data?.user ?? null);
     };
-    getUser();
+    loadUser();
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
 
     const saved = localStorage.getItem("whr_dark");
-    if (saved !== null) {
-      setDark(saved === "1");
-    } else {
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      setDark(prefersDark);
-    }
+    if (saved !== null) setDark(saved === "1");
+    else setDark(window.matchMedia("(prefers-color-scheme: dark)").matches);
 
     return () => sub?.subscription?.unsubscribe?.();
   }, []);
 
+  // 🔹 Apply theme
   useEffect(() => {
-    const root = document.documentElement;
-    if (dark) root.classList.add("dark");
-    else root.classList.remove("dark");
+    document.documentElement.classList.toggle("dark", dark);
     localStorage.setItem("whr_dark", dark ? "1" : "0");
   }, [dark]);
 
@@ -43,9 +38,11 @@ export default function Navbar() {
     setUser(null);
   }
 
+  // ----------------------------
+  // Navbar UI
+  // ----------------------------
   return (
     <>
-      {/* Navbar */}
       <header className="w-full bg-[var(--color-primary)] dark:bg-slate-900 shadow-md fixed top-0 left-0 z-50">
         <div className="flex items-center justify-between py-4 px-6 mx-auto max-w-screen-xl">
           {/* Logo */}
@@ -55,36 +52,62 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop menu */}
           <nav className="hidden md:flex items-center gap-6 text-white font-medium">
             <Link href="/explore" className="hover:opacity-80 transition">
               Explore
             </Link>
-            <Link href="/wish/new" className="hover:opacity-80 transition">
+            <Link href="/create-wish" className="hover:opacity-80 transition">
               Make a Wish
             </Link>
+
+            {/* Optional moderation (only admins or signed-in users) */}
             {user && (
               <Link href="/moderation" className="hover:opacity-80 transition">
                 Moderation
               </Link>
             )}
+
+            {/* --- Auth Controls --- */}
             {user ? (
-              <button
-                onClick={signOut}
-                className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-sm transition"
-              >
-                Sign out
-              </button>
+              <>
+                <Link
+                  href="/dashboard"
+                  className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-sm transition"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={signOut}
+                  className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-sm transition"
+                >
+                  Sign out
+                </button>
+              </>
             ) : (
-              <Link
-                href="/admin/login"
-                className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-sm transition"
-              >
-                Admin sign in
-              </Link>
+              <>
+                <Link
+                  href="/login"
+                  className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-sm transition"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-sm transition"
+                >
+                  Sign up
+                </Link>
+                <Link
+                  href="/admin/login"
+                  className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-sm transition"
+                >
+                  Admin
+                </Link>
+              </>
             )}
 
-            {/* Theme Toggle */}
+            {/* Theme toggle */}
             <button
               aria-label="Toggle theme"
               onClick={() => setDark((d) => !d)}
@@ -94,7 +117,7 @@ export default function Navbar() {
             </button>
           </nav>
 
-          {/* Mobile menu button */}
+          {/* Mobile hamburger */}
           <button
             onClick={() => setSidebarOpen(true)}
             className="md:hidden text-white text-2xl focus:outline-none"
@@ -104,7 +127,7 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Sidebar (Mobile) */}
+      {/* Mobile Sidebar */}
       <div
         className={`fixed top-0 right-0 h-full w-64 bg-[var(--color-primary)] dark:bg-slate-800 shadow-lg transform transition-transform duration-300 z-[60] ${
           sidebarOpen ? "translate-x-0" : "translate-x-full"
@@ -124,7 +147,7 @@ export default function Navbar() {
           <Link href="/explore" onClick={() => setSidebarOpen(false)}>
             Explore
           </Link>
-          <Link href="/wish/new" onClick={() => setSidebarOpen(false)}>
+          <Link href="/create-wish" onClick={() => setSidebarOpen(false)}>
             Make a Wish
           </Link>
           {user && (
@@ -132,27 +155,52 @@ export default function Navbar() {
               Moderation
             </Link>
           )}
+
           {user ? (
-            <button
-              onClick={() => {
-                signOut();
-                setSidebarOpen(false);
-              }}
-              className="text-left px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-sm transition"
-            >
-              Sign out
-            </button>
+            <>
+              <Link
+                href="/dashboard"
+                onClick={() => setSidebarOpen(false)}
+                className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-sm transition"
+              >
+                Dashboard
+              </Link>
+              <button
+                onClick={() => {
+                  signOut();
+                  setSidebarOpen(false);
+                }}
+                className="text-left px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-sm transition"
+              >
+                Sign out
+              </button>
+            </>
           ) : (
-            <Link
-              href="/admin/login"
-              onClick={() => setSidebarOpen(false)}
-              className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-sm transition"
-            >
-              Admin sign in
-            </Link>
+            <>
+              <Link
+                href="/login"
+                onClick={() => setSidebarOpen(false)}
+                className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-sm transition"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/signup"
+                onClick={() => setSidebarOpen(false)}
+                className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-sm transition"
+              >
+                Sign up
+              </Link>
+              <Link
+                href="/admin/login"
+                onClick={() => setSidebarOpen(false)}
+                className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-sm transition"
+              >
+                Admin
+              </Link>
+            </>
           )}
 
-          {/* Theme toggle inside sidebar */}
           <button
             aria-label="Toggle theme"
             onClick={() => setDark((d) => !d)}
@@ -163,7 +211,6 @@ export default function Navbar() {
         </nav>
       </div>
 
-      {/* Overlay when sidebar is open */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
