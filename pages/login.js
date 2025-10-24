@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
@@ -11,6 +11,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // get redirect query (e.g., /login?redirect=/checkout/123)
+  const redirectTo = router.query.redirect || "/explore";
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -25,8 +28,8 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      // ✅ Redirect registered user to Explore or Dashboard
-      router.push("/explore");
+      // ✅ redirect user to their intended page
+      router.push(redirectTo);
     } catch (err) {
       console.error("Login error:", err.message);
       setError("Invalid email or password.");
@@ -36,7 +39,13 @@ export default function LoginPage() {
   };
 
   const handleGuest = () => {
-    router.push("/donate-as-guest");
+    // If user clicks "Donate as Guest" from login page
+    // go to /donate-as-guest or directly to checkout if redirect provided
+    if (redirectTo.includes("/checkout/")) {
+      router.push(`${redirectTo}?guest=true`);
+    } else {
+      router.push("/donate-as-guest");
+    }
   };
 
   return (
