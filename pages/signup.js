@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
 import Head from "next/head";
@@ -16,6 +16,7 @@ export default function SignupPage() {
   const handleSignup = async (e) => {
     e.preventDefault();
     setError("");
+
     if (password !== confirm) {
       setError("Passwords do not match.");
       return;
@@ -23,13 +24,11 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
+      const { error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
-      router.push("/login");
+
+      // Redirect to verification page or login
+      router.push("/verify-email");
     } catch (err) {
       console.error("Signup error:", err.message);
       setError(err.message);
@@ -41,7 +40,7 @@ export default function SignupPage() {
   return (
     <>
       <Head>
-        <title>Sign Up | LightTech Wishes</title>
+        <title>Sign Up | WishhoffRichies</title>
       </Head>
 
       <main className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-slate-900 px-6">
@@ -51,10 +50,8 @@ export default function SignupPage() {
           </h1>
 
           <form onSubmit={handleSignup} className="flex flex-col gap-4">
-            <div>
-              <label className="block font-medium text-slate-700 dark:text-slate-200 mb-1">
-                Email
-              </label>
+            <label className="block">
+              <span className="block mb-1 text-slate-700 dark:text-slate-200">Email</span>
               <input
                 type="email"
                 value={email}
@@ -63,12 +60,10 @@ export default function SignupPage() {
                 className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-primary focus:outline-none"
                 placeholder="Enter your email"
               />
-            </div>
+            </label>
 
-            <div>
-              <label className="block font-medium text-slate-700 dark:text-slate-200 mb-1">
-                Password
-              </label>
+            <label className="block">
+              <span className="block mb-1 text-slate-700 dark:text-slate-200">Password</span>
               <input
                 type="password"
                 value={password}
@@ -77,12 +72,10 @@ export default function SignupPage() {
                 className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-primary focus:outline-none"
                 placeholder="Create password"
               />
-            </div>
+            </label>
 
-            <div>
-              <label className="block font-medium text-slate-700 dark:text-slate-200 mb-1">
-                Confirm Password
-              </label>
+            <label className="block">
+              <span className="block mb-1 text-slate-700 dark:text-slate-200">Confirm Password</span>
               <input
                 type="password"
                 value={confirm}
@@ -91,7 +84,7 @@ export default function SignupPage() {
                 className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-primary focus:outline-none"
                 placeholder="Confirm password"
               />
-            </div>
+            </label>
 
             {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
@@ -99,23 +92,19 @@ export default function SignupPage() {
               type="submit"
               disabled={loading}
               className={`w-full py-3 rounded-lg font-semibold text-white transition ${
-                loading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-primary hover:bg-primary/90"
+                loading ? "bg-gray-400 cursor-not-allowed" : "bg-primary hover:bg-primary/90"
               }`}
             >
               {loading ? "Creating Account..." : "Sign Up"}
             </button>
           </form>
 
-          <div className="text-center mt-6 text-sm text-slate-500 dark:text-slate-400">
-            <p>
-              Already have an account?{" "}
-              <Link href="/login" className="text-primary dark:text-blue-400 font-semibold">
-                Login
-              </Link>
-            </p>
-          </div>
+          <p className="text-center mt-6 text-sm text-slate-500 dark:text-slate-400">
+            Already have an account?{" "}
+            <Link href="/login" className="text-primary dark:text-blue-400 font-semibold">
+              Login
+            </Link>
+          </p>
         </div>
       </main>
     </>
